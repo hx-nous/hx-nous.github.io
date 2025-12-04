@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/119385115?v=4"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="本文介绍了一种新的方法，帮助LLM更好的理解图同时不损失LLM的通用性
+## 一、方法
+LLaGA 提出一个框架，让冻结的 LLM 能够利用图结构信息解决多种图任务。">
+<meta property="og:title" content="LLaGA: Large Language and Graph Assistant">
+<meta property="og:description" content="本文介绍了一种新的方法，帮助LLM更好的理解图同时不损失LLM的通用性
+## 一、方法
+LLaGA 提出一个框架，让冻结的 LLM 能够利用图结构信息解决多种图任务。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://hx-nous.github.io/post/LLaGA-%20Large%20Language%20and%20Graph%20Assistant.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/119385115?v=4">
+<title>LLaGA: Large Language and Graph Assistant</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">LLaGA: Large Language and Graph Assistant</h1>
+<div class="title-right">
+    <a href="https://hx-nous.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/hx-nous/hx-nous.github.io/issues/10" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><p>本文介绍了一种新的方法，帮助LLM更好的理解图同时不损失LLM的通用性</p>
+<h2>一、方法</h2>
+<p>LLaGA 提出一个框架，让冻结的 LLM 能够利用图结构信息解决多种图任务。做法是：</p>
+<ul>
+<li>先用两种“结构模板”把以某个节点为中心的局部子图表示成定长的节点序列向量；</li>
+<li>再用一个可训练的 MLP（projector）把这些节点向量映射到 LLM token embedding 空间，插入到 prompt 中的专用位置；</li>
+<li>LLM 本体和文本 encoder 完全冻结，只训练这个 projector。</li>
+</ul>
+<ol>
+<li>
+<p>详细模板：Neighborhood Detail Template（细粒度结构）<br>
+针对中心节点，构造一个固定深度、固定分支数的计算树（例如 2-hop，每层采样固定数目的邻居，不足用 [pad] 补齐）。<br>
+对这棵树做层序遍历（BFS 顺序），得到一个长度固定的节点序列。<br>
+对序列中每个位置：<br>
+用文本编码器（如 SimTeG / SBERT / RoBERTa）对该位置对应的节点文本做编码，得到节点特征；<br>
+预先在这个模板树上算好拉普拉斯特征向量，作为结构位置编码；<br>
+把两者拼起来作为该位置的 embedding；对 [pad] 只用位置编码。<br>
+这样得到一串“结构＋语义都对齐”的节点向量序列，适合需要细粒度邻居信息的任务（电商商品分类等）。</p>
+</li>
+<li>
+<p>粗略模板：Hop-Field Overview Template（按 hop 聚合的视野）<br>
+以中心节点为 0-hop，逐层向外看 1-hop、2-hop、…邻居；<br>
+对每一层（每个 hop）的邻居节点，对其文本向量做平均（或者类似的聚合），得到一个 hop-level 的向量 ℎ0,ℎ1,ℎ2,…h0,h1,h2,…。<br>
+这串 hop 向量就是“从近到远”的概览序列，序列长度 = 设定的最大 hop 数；<br>
+适合更依赖整体邻域分布、对单个邻居细节不敏感的任务（例如某些论文领域预测）。</p>
+</li>
+<li>
+<p>映射到 LLM token 空间的 projector</p>
+<p>上面任一模板都会得到一个序列向量(ℎ1,…,ℎ𝑛)<br>
+用一个小的多层感知机 projector 𝑓𝜃，对每个位置做变换：<br>
+<a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/706a6fa7-9f72-4bd1-8ee2-3f196f45428e"><img width="118" height="42" alt="Image" src="https://github.com/user-attachments/assets/706a6fa7-9f72-4bd1-8ee2-3f196f45428e" style="max-width: 100%; height: auto; max-height: 42px;"></a><br>
+得到维度和 LLM token embedding 一致的向量<br>
+构造 prompt 时，在类似 Given a node-centered graph:  的位置，直接把  替换为这串 𝑒1,…,𝑒𝑛 embedding：<br>
+其他文字部分仍然走 LLM 自带的 tokenizer + embedding lookup；<br>
+ 这一段则跳过 tokenizer，直接塞 projector 输出的 embedding。<br>
+训练时只更新 projector 的参数 𝜃，LLM 和文本 encoder 都冻住。</p>
+</li>
+<li>
+<p>统一多任务训练</p>
+<p>作者把三类图任务都改写成 QA 形式，用同一套 LLM + projector 来做：<br>
+节点分类：<br>
+Prompt：给出节点序列，问“中心节点属于哪个类别？”<br>
+Answer：输出具体类别名（如 cs.NA 等）。<br>
+链路预测：<br>
+Prompt：给出两个中心节点各自的子图序列，问“这两个节点是否应该有边？回答 yes 或 no。”<br>
+Answer：yes / no。<br>
+节点描述：<br>
+Prompt：给出节点子图序列，要求用自然语言描述这个节点（领域 + 大致内容）。<br>
+Answer：节点的文字描述，ground truth 来自原始文本和标签。<br>
+把来自 4 个数据集 × 3 种任务（共 12 个子任务）的样本混在一起训练一个 projector，这就是他们所谓的统一模型（General model）。</p>
+<p>训练目标：最大化在这些 QA 样本上正确生成答案 token 的概率，本质是标准的语言模型交叉熵 loss，只在 answer 部分回传梯度到 projector。</p>
+</li>
+</ol>
+<h2>二、创新点</h2>
+<p>可以在笔记里这样列：</p>
+<ol>
+<li>结构感知模板把“图 → 序列”这件事做得更系统<br>
+不再简单地把图写成自然语言，而是用定长模板（计算树 + Laplacian 位置编码 / hop 聚合）对齐结构位置信息；<br>
+对 LLM 来说，看到的是一串位置稳定的 embedding，方便“学会”哪些位置代表“近邻”“远邻”等结构角色。</li>
+<li>只训练一个小 projector，就能让冻结的 LLM 做多种图任务<br>
+LLM 和文本 encoder 完全冻结，减少训练成本；<br>
+统一的 projector 在多数据集、多任务上训练，表现依然优于很多专门为单任务设计的 GNN/图 Transformer。</li>
+<li>任务统一为 QA，天然支持多任务和自然语言解释<br>
+节点分类、链路预测和节点描述都变成“给你图＋问题，输出一段话”；<br>
+自带可解释性：模型不仅能给标签，还能输出对节点的语义描述，而且能从描述中恢复出正确 label。</li>
+<li>较强的零样本泛化能力<br>
+在若干场景下，可以在 Arxiv / Pubmed 等图上训练，迁移到 Cora 或 Products 做 zero-shot 链路预测、节点分类，表现优于传统 GNN 和 GraphGPT。</li>
+</ol>
+<h2>三、不足与潜在局限</h2>
+<ol>
+<li>主要还是“节点级局部子图”，对特别长程的结构信息不一定友好<br>
+模板深度、采样的邻居数量都是有限的；<br>
+高度依赖采样到的局部结构，可能对长距离依赖、全局拓扑模式不敏感。</li>
+<li>预处理和模板构造的成本不低<br>
+需要为每个中心节点构建计算树 / hop 邻域；<br>
+在模板树上预先计算 Laplacian 位置编码；<br>
+大规模动态图或超大图上，这部分开销会比较重。</li>
+<li>序列长度不可太长，高度依赖模板设计<br>
+LLM 的输入长度有限，所以模板只能编码有限大小的邻域；<br>
+多数情况需要截断/采样，可能丢掉部分关键信息；<br>
+模板超参数（深度、采样数、hop 数）需要人为设定，迁移到其他图类型时可能要重调。</li>
+<li>当前实验集中在有文本属性的图 &amp; 节点级任务<br>
+很依赖节点有较丰富的文本描述（论文摘要、商品描述）；<br>
+对于少文本甚至无文本的图，以及图级任务（graph classification）或复杂子图推理，还没有完整验证。</li>
+<li>LLM 冻结的好处是省事，但上限也受限于基座 LLM<br>
+如果基座 LLM 本身推理／数学能力有限，projector 再强也可能有上限；<br>
+进一步的方向可能是 projector + 轻量 LoRA / adapter 一起调。</li>
+</ol>
+<h2>总结</h2>
+<p>LLaGA 本质上是一个“图 → 结构感知序列 → LLM token embedding”的桥接框架：<br>
+通过两种节点级结构模板，把局部子图编码成定长序列向量，再用一个小的投影器把这些向量塞进冻结的 LLM 中。<br>
+在节点分类、链路预测和节点描述三类任务上，LLaGA 既能达到甚至超越专门的图神经网络，又保留了 LLM 的多任务能力和自然语言解释能力，并在跨图数据集的 zero-shot 场景中表现出不错的泛化。但它仍然主要适用于有丰富文本属性、节点级的图任务，对超大规模图、无文本图和更复杂的全局结构推理，还有不少扩展空间。</p></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://hx-nous.github.io">hx-nous</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行"+diffDay+"天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","hx-nous/hx-nous.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+
+
+</html>
