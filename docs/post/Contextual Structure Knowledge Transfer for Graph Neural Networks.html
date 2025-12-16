@@ -86,6 +86,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>论文提出 <strong>CS-GNN（Contextual Structural GNN）</strong>：通过刻画节点局部上下文结构，并把这种“结构指纹”融入注意力计算，使模型能在迁移时对不同结构模式更鲁棒。</p>
 <hr>
 <h2>方法流程（按模块拆解）</h2>
+
 <h3>1) 构建 Ego-network（自我网络）</h3>
 <ul>
 <li>对每个节点构建 <strong>k-hop ego-graph</strong>（论文实验中常用 k=2）。</li>
