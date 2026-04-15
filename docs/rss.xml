@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>hx-nous</title><link>https://hx-nous.github.io</link><description>记录研究生学习历程</description><copyright>hx-nous</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/119385115?v=4</url><title>avatar</title><link>https://hx-nous.github.io</link></image><lastBuildDate>Mon, 16 Mar 2026 07:27:07 +0000</lastBuildDate><managingEditor>hx-nous</managingEditor><ttl>60</ttl><webMaster>hx-nous</webMaster><item><title>Dynamic Bundling with Large Language Models for Zero-Shot Inference on Text-Attributed Graphs</title><link>https://hx-nous.github.io/post/Dynamic%20Bundling%20with%20Large%20Language%20Models%20for%20Zero-Shot%20Inference%20on%20Text-Attributed%20Graphs.html</link><description># Dynamic Bundling with Large Language Models for Zero-Shot Inference on Text-Attributed Graphs
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>hx-nous</title><link>https://hx-nous.github.io</link><description>记录研究生学习历程</description><copyright>hx-nous</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/119385115?v=4</url><title>avatar</title><link>https://hx-nous.github.io</link></image><lastBuildDate>Wed, 15 Apr 2026 10:08:37 +0000</lastBuildDate><managingEditor>hx-nous</managingEditor><ttl>60</ttl><webMaster>hx-nous</webMaster><item><title>SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs</title><link>https://hx-nous.github.io/post/SSTAG-%20Structure-Aware%20Self-Supervised%20Learning%20Method%20for%20Text-Attributed%20Graphs.html</link><description># SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs
+
+- 会议/期刊：NeurIPS 2025
+- 年份：2025
+- 论文链接：arXiv: 2508.17387
+- 代码链接：https://github.com/Liury925/SSTAG
+
+## 一句话总结
+这篇论文想解决图基础模型难以跨图、跨任务迁移的问题。</description><guid isPermaLink="true">https://hx-nous.github.io/post/SSTAG-%20Structure-Aware%20Self-Supervised%20Learning%20Method%20for%20Text-Attributed%20Graphs.html</guid><pubDate>Wed, 15 Apr 2026 10:08:07 +0000</pubDate></item><item><title>Dynamic Bundling with Large Language Models for Zero-Shot Inference on Text-Attributed Graphs</title><link>https://hx-nous.github.io/post/Dynamic%20Bundling%20with%20Large%20Language%20Models%20for%20Zero-Shot%20Inference%20on%20Text-Attributed%20Graphs.html</link><description># Dynamic Bundling with Large Language Models for Zero-Shot Inference on Text-Attributed Graphs
 
 - **会议/期刊**：NeurIPS 2025 Poster
 - **年份**：2025

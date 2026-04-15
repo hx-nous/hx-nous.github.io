@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/119385115?v=4"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs
+
+- 会议/期刊：NeurIPS 2025
+- 年份：2025
+- 论文链接：arXiv: 2508.17387
+- 代码链接：https://github.com/Liury925/SSTAG
+
+## 一句话总结
+这篇论文想解决图基础模型难以跨图、跨任务迁移的问题。">
+<meta property="og:title" content="SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs">
+<meta property="og:description" content="# SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs
+
+- 会议/期刊：NeurIPS 2025
+- 年份：2025
+- 论文链接：arXiv: 2508.17387
+- 代码链接：https://github.com/Liury925/SSTAG
+
+## 一句话总结
+这篇论文想解决图基础模型难以跨图、跨任务迁移的问题。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://hx-nous.github.io/post/SSTAG-%20Structure-Aware%20Self-Supervised%20Learning%20Method%20for%20Text-Attributed%20Graphs.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/119385115?v=4">
+<title>SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs</h1>
+<div class="title-right">
+    <a href="https://hx-nous.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/hx-nous/hx-nous.github.io/issues/17" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs</h1>
+<ul>
+<li>会议/期刊：NeurIPS 2025</li>
+<li>年份：2025</li>
+<li>论文链接：arXiv: 2508.17387</li>
+<li>代码链接：<a href="https://github.com/Liury925/SSTAG">https://github.com/Liury925/SSTAG</a></li>
+</ul>
+<h2>一句话总结</h2>
+<p>这篇论文想解决图基础模型难以跨图、跨任务迁移的问题。作者以 Text-Attributed Graphs（TAG）为统一载体，把文本语义建模和图结构建模结合起来：先用 LM + GNN 组成 teacher 学联合表示，再蒸馏到一个带 PPR 结构先验的轻量 MLP student，同时配合 memory bank 学习更稳定的原型表示；实验表明它在跨域的节点分类、链路预测、图分类和图回归任务上整体优于多种强基线，并显著降低推理成本。</p>
+<h2>研究问题</h2>
+<h3>背景</h3>
+<p>NLP 和 CV 已经形成了强大的预训练范式，但图学习仍然多停留在“单图、单任务、重标注依赖”的模式。图数据的难点在于特征空间异构、标签空间异构、结构模式异构，这使得跨图迁移远比文本和图像困难。作者认为，很多真实图数据天然带文本属性，文本可以作为跨领域共享的语义接口，因此 TAG 是建立图预训练框架的一个合适入口。</p>
+<h3>核心问题</h3>
+<p>如何在 TAG 上设计一个统一、可迁移、可扩展的自监督预训练框架，使其能够同时支持 node-level、edge-level、graph-level 三类任务，并在大规模图上保持可部署性。</p>
+<h3>现有方法不足</h3>
+<ul>
+<li>传统 GNN/图自监督方法大多在单图设置下训练，跨域泛化能力弱。</li>
+<li>纯文本或纯 LLM 路线能抓语义，但不擅长拓扑推理；纯 GNN 路线擅长结构建模，但难吸收开放语义知识。</li>
+<li>现有方法通常只针对某一粒度任务设计，缺少统一的 node / edge / graph 任务模板。</li>
+</ul>
+<h2>核心思路</h2>
+<ol>
+<li>先用 Unified Graph Task 把节点、边、图任务统一成“目标对象 + 上下文子图”的输入形式，其中 node/edge 任务借助 PPR 采样构建子图。</li>
+<li>再用 Sentence Transformer + GCN 组成 teacher，通过 masked text reconstruction + graph propagation 联合学习语义和结构信息。</li>
+<li>最后把 teacher 的知识蒸馏到一个 structure-aware MLP 中，并利用 memory bank 学习原型表示，以换取更低的推理成本和更好的跨域稳定性。</li>
+</ol>
+<h2>方法要点</h2>
+<h3>1. 模块 A：Unified Graph Task（UGT）</h3>
+<ul>
+<li>做什么：把不同粒度的图任务统一到同一种表示模板里。node-level 任务围绕目标节点采样子图；edge-level 任务分别围绕两个端点采样再取并集；graph-level 任务直接使用整图。</li>
+<li>输入输出：输入是原始 TAG 与目标预测对象；输出是适配该任务的上下文（子）图表示。</li>
+<li>为什么这样设计：不同任务粒度本来不一致，统一模板后，后面的 teacher、student 和训练目标就都能复用，从而支持跨任务迁移。</li>
+<li>关键公式/机制：对 node-level 任务，作者用 Personalized PageRank 计算节点相对重要性分数，再基于重要性进行子图采样；对 edge-level 任务，用两个端点子图的并集表示边。</li>
+<li>我的理解：这一部分不只是“采样技巧”，而是整篇论文的任务统一接口。没有它，后面的跨任务预训练和迁移就很难成立。PPR 在这里既承担结构标准化作用，也承担大图场景下的效率控制作用。</li>
+</ul>
+<h3>2. 模块 B：Knowledge Extraction + Distillation</h3>
+<ul>
+<li>做什么：先用 teacher 学到“语义 + 结构”的强表示，再把这些能力蒸馏到轻量 student。teacher 侧由 LM 和 GNN 组成；student 侧是带 PPR 结构先验的 MLP，并配合 memory bank 学原型表示。</li>
+<li>输入输出：teacher 输入是带 mask 的节点文本和图结构，输出 token-level 与 node-level 的联合表示；student 输入是节点 <code class="notranslate">[CLS]</code> 表示与 PPR 分数拼接后的特征，输出轻量节点表示。</li>
+<li>为什么这样设计：LM 擅长语义理解，但不擅长显式图推理；GNN 擅长结构传播，但不擅长开放语义。teacher 将两者结合；student 通过蒸馏继承 teacher 的能力，同时避免下游推理阶段继续进行重型 message passing。</li>
+<li>关键公式/机制：
+<ul>
+<li>teacher 端先对文本做 token mask，再用 LM 编码得到 token 表示，抽取 <code class="notranslate">[CLS]</code> 后送入 GNN 得到图增强表示，最后把 token 表示和图增强后的 <code class="notranslate">[CLS]</code> 融合后做 masked token prediction。</li>
+<li>student 端把 <code class="notranslate">[CLS]</code> 表示和 PPR 分数拼接后送入 MLP。</li>
+<li>memory bank 维护一组固定大小的 prototype anchors，通过相似度 + softmax 重构得到 prototype 风格表示。</li>
+</ul>
+</li>
+<li>我的理解：teacher 是“高表达力教师”，student 是“低成本部署器”。真正有特色的不是单独的蒸馏，而是把图结构、文本语义、原型记忆一起蒸馏到 student 里。</li>
+</ul>
+<h3>3. 训练与推理</h3>
+<ul>
+<li>训练：
+<ul>
+<li>Mask loss：恢复被 mask 的 token；</li>
+<li>Student-teacher consistency loss：约束 student 逼近 teacher；</li>
+<li>Memory consistency loss：约束 student 表示与 memory bank 重构表示一致。</li>
+</ul>
+</li>
+<li>推理：推理阶段只保留 LM 前向 + student MLP，不再使用完整 teacher，也不再进行重型 GNN 训练式推理。</li>
+<li>与已有方法的关键区别：
+<ul>
+<li>比普通 GraphMAE/GraphCL 更进一步：它不是只在单图里做自监督，而是面向跨域迁移。</li>
+<li>比 Graph-LLM 更进一步：它不是把图完全变成文本来处理，而是保留了显式图结构建模 + 蒸馏压缩。</li>
+<li>比 UniGraph 更进一步：除了统一任务模板，还加入了 LM+GNN 联合 teacher 与 memory-based distillation。</li>
+</ul>
+</li>
+</ul>
+<h2>创新点</h2>
+<ol>
+<li>提出一个统一的 node-level / edge-level / graph-level 任务模板，把不同粒度图任务收进一个预训练框架里。</li>
+<li>设计了 LM + GNN → structure-aware MLP 的联合蒸馏目标，同时把语义理解和结构建模压缩到轻量 student 中。</li>
+<li>引入 memory bank / memory anchors，显式学习稳定的 prototype 表示，以增强跨域泛化和部署可扩展性。</li>
+</ol>
+<h2>实验与结论</h2>
+<h3>实验设置</h3>
+<ul>
+<li>数据集：预训练在 ogbn-Papers100M 上完成；下游迁移覆盖 citation、web、knowledge、movie、molecular 等多个领域。</li>
+<li>任务：节点分类、链路预测、图分类、图回归。</li>
+<li>baseline：GCN、GIN、GAT、GraphCL、BGRL、GraphMAE、GraphMAE2、Graph-LLM、UniGraph。</li>
+<li>指标：节点分类看 Accuracy，链路预测和图分类看 ROC-AUC，图回归看 RMSE。</li>
+</ul>
+<h3>主要结果</h3>
+<ul>
+<li>在 node/link 任务上，SSTAG 在 Cora、Pubmed、ogbn-Arxiv、WikiCS、Products、FB15K237、WN18RR、ML1M 上都取得最优结果。</li>
+<li>在 graph 任务上，SSTAG 也保持领先，例如在 HIV、BBBP、BACE、MUV 上表现最好，在 ESOL、LIPO、CEP 上取得更低的 RMSE。</li>
+<li>作者总结了三点结论：一是 SSTAG 整体跨域泛化更强；二是它在低标注场景下表现出较好的 label efficiency；三是统一任务模板使其能稳定适配不同粒度任务。</li>
+</ul>
+<h3>分析实验</h3>
+<ul>
+<li>消融：去掉任何一个模块都会掉点，其中去掉 GNN 的下降最明显，说明显式结构建模仍然关键；去掉 PPR 也会下降，说明 PPR 采样确实提供了更有信息量的局部上下文。</li>
+<li>可视化：从正文和附录已提供内容看，论文重点不是表征可视化，而是框架图、主结果表和消融/效率分析。</li>
+<li>额外发现：蒸馏后的 student MLP 显著降低了推理时间和参数量，而准确率只小幅下降，说明其在部署层面很有优势。</li>
+</ul>
+<h2>不足与问题</h2>
+<ol>
+<li>论文的 limitation 讨论不够展开，正文里对局限的具体分析较少。</li>
+<li>student 用 PPR 统计替代显式 message passing，可能损失复杂高阶结构表达。</li>
+<li>memory bank 采用固定数量 anchors，扩展到更大、更异构图时是否足够表达多样性，仍有疑问。</li>
+<li>方法虽然推理更轻，但预训练成本依然较高，整体计算瓶颈仍在 LM 一侧。</li>
+</ol>
+<h2>和我当前研究的关系</h2>
+<ul>
+<li>可借鉴点：先统一任务模板，再统一训练目标。很多工作一上来就卷 backbone，但这篇文章说明“任务输入形式的统一”本身就能带来很强的迁移收益。</li>
+<li>可复用模块：
+<ol>
+<li>PPR 子图采样；</li>
+<li>文本 mask + 图增强的 teacher 训练方式；</li>
+<li><code class="notranslate">[CLS] + 结构先验 → MLP</code> 的轻量 student 设计；</li>
+<li>memory bank 原型约束。</li>
+</ol>
+</li>
+<li>能否作为 baseline：可以。尤其如果任务包含文本属性图、跨域迁移、低标注设置或者推理成本敏感场景，SSTAG 很适合作为一个强且完整的 baseline。</li>
+<li>对我最有启发的一点：不是所有高性能图模型都要在下游阶段继续保留重型 GNN，可以把“训练时的复杂结构建模能力”通过蒸馏压缩进一个轻量 student，从而把“表达力”和“部署效率”拆开优化。</li>
+</ul>
+<h2>最终总结</h2>
+<ul>
+<li>值不值得重点跟进：值得。它不是单点技巧论文，而是一篇比较完整的 TAG 预训练框架论文，在“统一任务模板 + 多模态蒸馏 + 轻量部署”这条线上做得比较系统。</li>
+<li>一句话评价：这是一篇把“图结构建模、文本语义建模、跨域迁移、推理效率”四件事尽量同时做好了的 TAG 预训练工作，方法完整、实验扎实，但 student 端对复杂高阶结构的表达可能仍有上限。</li>
+</ul></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://hx-nous.github.io">hx-nous</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","hx-nous/hx-nous.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+
+
+</html>
