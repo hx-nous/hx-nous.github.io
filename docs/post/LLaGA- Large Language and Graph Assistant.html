@@ -107,7 +107,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>映射到 LLM token 空间的 projector</p>
 <p>上面任一模板都会得到一个序列向量(ℎ1,…,ℎ𝑛)<br>
 用一个小的多层感知机 projector 𝑓𝜃，对每个位置做变换：<br>
-<a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/706a6fa7-9f72-4bd1-8ee2-3f196f45428e"><img width="118" height="42" alt="Image" src="https://github.com/user-attachments/assets/706a6fa7-9f72-4bd1-8ee2-3f196f45428e" style="max-width: 100%; height: auto; max-height: 42px;"></a><br>
+<a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/706a6fa7-9f72-4bd1-8ee2-3f196f45428e"><img width="118" height="42" alt="Image" src="https://github.com/user-attachments/assets/706a6fa7-9f72-4bd1-8ee2-3f196f45428e" style="max-width: 100%; height: auto; max-height: 42px;; aspect-ratio: 118 / 42; background-color: var(--bgColor-muted); border-radius: 6px; display: block" class="js-gh-image-fallback"></a><br>
 得到维度和 LLM token embedding 一致的向量<br>
 构造 prompt 时，在类似 Given a node-centered graph:  的位置，直接把  替换为这串 𝑒1,…,𝑒𝑛 embedding：<br>
 其他文字部分仍然走 LLM 自带的 tokenizer + embedding lookup；<br>
