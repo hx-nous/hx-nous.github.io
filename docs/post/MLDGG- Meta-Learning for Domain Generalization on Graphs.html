@@ -79,7 +79,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <div id="content">
 <div class="markdown-body" id="postBody"><h2>总览（修订版）</h2>
 <p>本文提出 <strong>MLDGG</strong>：一种面向**图上的节点级域泛化（Domain Generalization, DG）**的方法。核心思想是用 <strong>MAML 式元学习</strong>在多个源域/源图上学习一个“更易适配”的初始化，使模型在遇到训练阶段未见过的目标图时，也能通过少量微调获得更好的泛化性能。框架包含两个关键模块：**结构学习器（Structure Learner）**与 <strong>表征学习器（Representation Learner）</strong>，分别针对“结构噪声/结构偏差”和“语义与域变化因素混叠”两类问题进行建模，并在元学习的内外循环中联合优化。</p>
-<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/916ac0d7-d4bc-4bcd-9d30-b00a81cf9958"><img width="1136" height="664" alt="Image" src="https://github.com/user-attachments/assets/916ac0d7-d4bc-4bcd-9d30-b00a81cf9958" style="max-width: 100%; height: auto; max-height: 664px;; aspect-ratio: 1136 / 664; background-color: var(--bgColor-muted); border-radius: 6px; display: block" class="js-gh-image-fallback"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/916ac0d7-d4bc-4bcd-9d30-b00a81cf9958"><img width="1136" height="664" alt="Image" src="https://github.com/user-attachments/assets/916ac0d7-d4bc-4bcd-9d30-b00a81cf9958" style="max-width: 100%; height: auto; max-height: 664px;; aspect-ratio: 1136 / 664; background-color: var(--bgColor-muted); border-radius: 6px" class="js-gh-image-fallback"></a></p>
 <hr>
 <h2>方法要点（更贴近论文表述）</h2>
 <h3>1) 结构学习器：学习可迁移的精炼结构，弱化任务无关边</h3>
@@ -89,7 +89,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <li>关键点：采样 (A') 不可微，作者用 <strong>policy gradient / REINFORCE</strong> 来优化结构学习器参数。</li>
 <li>表示更新：将原图结构 (A) 与精炼结构 (A') 的消息传递按系数 (\lambda) 融合，例如：</li>
 </ul>
-<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/bb6d4549-259d-474c-815c-ee9cfd1dea20"><img width="417" height="42" alt="Image" src="https://github.com/user-attachments/assets/bb6d4549-259d-474c-815c-ee9cfd1dea20" style="max-width: 100%; height: auto; max-height: 42px;; aspect-ratio: 417 / 42; background-color: var(--bgColor-muted); border-radius: 6px; display: block" class="js-gh-image-fallback"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/bb6d4549-259d-474c-815c-ee9cfd1dea20"><img width="417" height="42" alt="Image" src="https://github.com/user-attachments/assets/bb6d4549-259d-474c-815c-ee9cfd1dea20" style="max-width: 100%; height: auto; max-height: 42px;; aspect-ratio: 417 / 42; background-color: var(--bgColor-muted); border-radius: 6px" class="js-gh-image-fallback"></a></p>
 <h3>2) 表征学习器：分离“决定标签的语义因子”与“域变化因子”</h3>
 <ul>
 <li>核心假设：节点表示 (r) 可分解为两部分：

@@ -77,7 +77,7 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
     <div id="content">
 <div class="markdown-body" id="postBody"><h1>总览</h1>
 <p>本文提出 <strong>MF-GIA（Modality-Free Graph In-context Alignment）</strong>：一种面向<strong>图基础模型（Graph Foundation Models, GFM）的、无模态假设（modality-free）的图上 in-context learning 框架。它关注的问题不是传统“预训练后在目标图上继续微调”，而是：给定未见过的目标图和少量 support 样本，在不更新预训练模型参数的前提下，直接完成 few-shot 预测。核心思想是先利用 梯度指纹（gradient fingerprint） 从 support 样本中提取目标图的域信息，再基于该域信息构造域条件特征对齐器和域条件标签对齐器</strong>，将不同图中的特征空间与标签空间统一到共享语义空间中，最后通过 <strong>DPAA（Dual Prompt-Aware Attention）</strong> 完成 prompt-based 的匹配与推理。论文强调，该方法<strong>不依赖原始模态信息</strong>，因此适用于只能获得预编码图特征、无法访问原始文本/图像/属性的场景。</p>
-<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/d4ae5c2b-775d-4b1f-85bd-1e5ff0345b52"><img width="1221" height="579" alt="Image" src="https://github.com/user-attachments/assets/d4ae5c2b-775d-4b1f-85bd-1e5ff0345b52" style="max-width: 100%; height: auto; max-height: 579px;; aspect-ratio: 1221 / 579; background-color: var(--bgColor-muted); border-radius: 6px; display: block" class="js-gh-image-fallback"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/user-attachments/assets/d4ae5c2b-775d-4b1f-85bd-1e5ff0345b52"><img width="1221" height="579" alt="Image" src="https://github.com/user-attachments/assets/d4ae5c2b-775d-4b1f-85bd-1e5ff0345b52" style="max-width: 100%; height: auto; max-height: 579px;; aspect-ratio: 1221 / 579; background-color: var(--bgColor-muted); border-radius: 6px" class="js-gh-image-fallback"></a></p>
 <hr>
 <h1>方法要点</h1>
 <h2>1) 问题设定：目标是“无模态的跨图 in-context 对齐”</h2>
