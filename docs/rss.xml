@@ -1,5 +1,15 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>hx-nous</title><link>https://hx-nous.github.io</link><description>记录研究生学习历程</description><copyright>hx-nous</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/119385115?v=4</url><title>avatar</title><link>https://hx-nous.github.io</link></image><lastBuildDate>Wed, 15 Apr 2026 10:08:37 +0000</lastBuildDate><managingEditor>hx-nous</managingEditor><ttl>60</ttl><webMaster>hx-nous</webMaster><item><title>SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs</title><link>https://hx-nous.github.io/post/SSTAG-%20Structure-Aware%20Self-Supervised%20Learning%20Method%20for%20Text-Attributed%20Graphs.html</link><description># SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>hx-nous</title><link>https://hx-nous.github.io</link><description>记录研究生学习历程</description><copyright>hx-nous</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/119385115?v=4</url><title>avatar</title><link>https://hx-nous.github.io</link></image><lastBuildDate>Mon, 18 May 2026 06:40:17 +0000</lastBuildDate><managingEditor>hx-nous</managingEditor><ttl>60</ttl><webMaster>hx-nous</webMaster><item><title>Graph Tokenization for Bridging Graphs and Transformers</title><link>https://hx-nous.github.io/post/Graph%20Tokenization%20for%20Bridging%20Graphs%20and%20Transformers.html</link><description># Graph Tokenization for Bridging Graphs and Transformers
+
+- 会议/期刊：ICLR
+- 年份：2026
+- 论文链接：https://arxiv.org/abs/2603.11099
+- 代码链接：https://github.com/BUPT-GAMMA/Graph-Tokenization-for-Bridging-Graphs-and-Transformers
+
+
+## 一句话总结
+
+这篇论文提出 GraphTokenizer，通过“可逆图序列化 + 结构频率引导 + BPE”的方式，将带标签图转换成离散 token 序列，使 BERT、GTE 等标准 Transformer 无需图专用结构修改即可处理图分类和图回归任务，并在 14 个 benchmark 上取得优于多数 GNN 和 Graph Transformer 的结果。</description><guid isPermaLink="true">https://hx-nous.github.io/post/Graph%20Tokenization%20for%20Bridging%20Graphs%20and%20Transformers.html</guid><pubDate>Mon, 18 May 2026 06:39:51 +0000</pubDate></item><item><title>SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs</title><link>https://hx-nous.github.io/post/SSTAG-%20Structure-Aware%20Self-Supervised%20Learning%20Method%20for%20Text-Attributed%20Graphs.html</link><description># SSTAG: Structure-Aware Self-Supervised Learning Method for Text-Attributed Graphs
 
 - 会议/期刊：NeurIPS 2025
 - 年份：2025
