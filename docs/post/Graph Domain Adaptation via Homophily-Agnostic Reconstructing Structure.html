@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/119385115?v=4"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure
+
+- 会议/期刊：AAAI 2026，Proceedings of the AAAI Conference on Artificial Intelligence
+- 年份：2026
+- 论文链接：https://arxiv.org/abs/2602.07573
+- 代码链接：无
+## 一句话总结
+
+这篇论文解决无监督图领域自适应中目标图无标签、无法提前判断其同配或异配程度的问题，提出 RSGDA 方法，通过分别重构源图和目标图的同配图与异配图，再分别滤波、编码、重构和对齐，在多种同配与异配图迁移任务上取得较好效果，尤其强调了在异配图场景下的优势。">
+<meta property="og:title" content="Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure">
+<meta property="og:description" content="# Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure
+
+- 会议/期刊：AAAI 2026，Proceedings of the AAAI Conference on Artificial Intelligence
+- 年份：2026
+- 论文链接：https://arxiv.org/abs/2602.07573
+- 代码链接：无
+## 一句话总结
+
+这篇论文解决无监督图领域自适应中目标图无标签、无法提前判断其同配或异配程度的问题，提出 RSGDA 方法，通过分别重构源图和目标图的同配图与异配图，再分别滤波、编码、重构和对齐，在多种同配与异配图迁移任务上取得较好效果，尤其强调了在异配图场景下的优势。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://hx-nous.github.io/post/Graph%20Domain%20Adaptation%20via%20Homophily-Agnostic%20Reconstructing%20Structure.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/119385115?v=4">
+<title>Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure</h1>
+<div class="title-right">
+    <a href="https://hx-nous.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/hx-nous/hx-nous.github.io/issues/19" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure</h1>
+<ul>
+<li>会议/期刊：AAAI 2026，Proceedings of the AAAI Conference on Artificial Intelligence</li>
+<li>年份：2026</li>
+<li>论文链接：<a href="https://arxiv.org/abs/2602.07573" rel="nofollow">https://arxiv.org/abs/2602.07573</a></li>
+<li>代码链接：无</li>
+</ul>
+<h2>一句话总结</h2>
+<p>这篇论文解决无监督图领域自适应中目标图无标签、无法提前判断其同配或异配程度的问题，提出 RSGDA 方法，通过分别重构源图和目标图的同配图与异配图，再分别滤波、编码、重构和对齐，在多种同配与异配图迁移任务上取得较好效果，尤其强调了在异配图场景下的优势。</p>
+<h2>研究问题</h2>
+<h3>背景</h3>
+<p>图领域自适应，Graph Domain Adaptation，简称 GDA，关注的是：源图有标签，目标图没有标签，如何把源图中学到的分类知识迁移到目标图上。</p>
+<p>在图学习中，很多传统 GNN 默认图具有同配性，也就是相似节点更容易相连。例如同领域论文互相引用、兴趣相似的人互相关注。但真实图中也常见异配性，也就是相连节点可能属于不同类别，例如老师和学生、买家和卖家、不同功能的蛋白质节点等。</p>
+<h3>核心问题</h3>
+<p>目标图没有标签，因此无法提前计算目标图的同配率，也就无法判断目标图到底更偏同配还是更偏异配。现有 GDA 方法如果默认图是同配的，在异配图或同配程度变化较大的跨图迁移场景中容易失效。</p>
+<h3>现有方法不足</h3>
+<ul>
+<li>许多 GDA 方法默认源图和目标图都具有同配性，依赖“邻居节点相似”这一假设，在异配图上性能下降。</li>
+<li>一些异配图学习方法需要标签来判断或调整结构，不适合目标图无标签的无监督 GDA 场景。</li>
+<li>现有方法往往把同配信息和异配信息混在一个表示空间中学习与对齐，容易造成结构信号混淆。</li>
+<li>真实图通常不是纯同配或纯异配，而是不同节点、不同局部区域具有不同程度的同配性，简单地把整张图判定为同配图或异配图比较粗糙。</li>
+</ul>
+<h2>核心思路</h2>
+<ol>
+<li>不提前判断目标图是同配还是异配，而是对源图和目标图都分别重构出同配图和异配图两个版本。</li>
+<li>对同配图使用偏低通的滤波方式提取相似节点之间的平滑信息；对异配图使用偏高通的滤波方式提取节点之间的差异信息。</li>
+<li>使用两个编码器分别学习同配表示和异配表示，再将源域和目标域的同配表示、异配表示分别对齐，从而减少源目标之间的结构分布差异。</li>
+</ol>
+<h2>方法要点</h2>
+<h3>1. 模块 A：结构重构，Structure Reconstruction</h3>
+<ul>
+<li>
+<p>做什么：</p>
+<p>将原始源图和目标图分别重构成两个版本：</p>
+<ul>
+<li>同配图：更强调相似节点之间的连接。</li>
+<li>异配图：更强调不相似节点之间的关系。</li>
+</ul>
+</li>
+<li>
+<p>输入输出：</p>
+<p>输入：</p>
+<ul>
+<li>原始邻接矩阵 <code class="notranslate">A^S, A^T</code></li>
+<li>原始节点特征 <code class="notranslate">X^S, X^T</code></li>
+</ul>
+<p>输出：</p>
+<ul>
+<li>源域同配图 <code class="notranslate">A_O^S</code></li>
+<li>源域异配图 <code class="notranslate">A_E^S</code></li>
+<li>目标域同配图 <code class="notranslate">A_O^T</code></li>
+<li>目标域异配图 <code class="notranslate">A_E^T</code></li>
+</ul>
+</li>
+<li>
+<p>为什么这样设计：</p>
+<p>目标域没有标签，不能提前判断目标图的同配程度。如果只用一种图结构，模型可能只适合同配图或只适合异配图。通过同时构造同配图和异配图，模型可以同时保留“相似关系”和“差异关系”。</p>
+</li>
+<li>
+<p>关键公式/机制：</p>
+<p>同配图构造的核心思想是：如果两个节点特征距离小，就应该更容易连接。</p>
+<p>节点 <code class="notranslate">i</code> 和节点 <code class="notranslate">j</code> 的特征距离定义为：</p>
+</li>
+</ul>
+$$F_{ij}=\|x_i-x_j\|^2$$
+<p>其中，<code class="notranslate">x_i</code> 和 <code class="notranslate">x_j</code> 分别表示节点 <code class="notranslate">i</code> 和节点 <code class="notranslate">j</code> 的特征向量。若 <code class="notranslate">F_{ij}</code> 越小，说明两个节点越相似，因此它们在同配图中越应该被连接。</p>
+<p>同配图优化目标可以理解为：</p>
+$$\min_{\hat{A}_{ij}}
+  \hat{A}_{ij}F_{ij}
+  +
+  \hat{A}_{ij}^{2}
+  +
+  \left(\hat{A}_{ij}^{(l)}-\hat{A}_{ij}\right)^2$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">\hat{A}_{ij}F_{ij}</code>：鼓励特征相似的节点连接。如果两个节点特征距离 <code class="notranslate">F_{ij}</code> 较小，那么给它们较大的连接权重代价较低。</li>
+<li><code class="notranslate">\hat{A}_{ij}^{2}</code>：防止边权重过大，避免重构出的图结构过于极端。</li>
+<li><code class="notranslate">\left(\hat{A}_{ij}^{(l)}-\hat{A}_{ij}\right)^2</code>：引入多跳邻居信息，不只依赖一跳邻居关系。</li>
+</ul>
+<p>该优化目标还受到如下约束：</p>
+$$\hat{A}_{ij}&gt;0$$
+$$\sum_{j=1}^{N}\hat{A}_{ij}=1$$
+<p>第一个约束表示重构后的边权重应为正数；第二个约束表示节点 <code class="notranslate">i</code> 与其他节点的连接权重之和为 1，可以理解为对每个节点的连接分布进行归一化。</p>
+<p>异配图构造使用互补相似矩阵和互补邻接矩阵。</p>
+<p>首先，节点特征相似度矩阵为 <code class="notranslate">S</code>，则节点之间的不相似程度可以表示为：</p>
+$$\bar{S}=1-S$$
+<p>原始邻接矩阵为 <code class="notranslate">A</code>，则原来不相连的节点关系可以表示为：</p>
+$$\bar{A}=1-A$$
+<p>然后通过逐元素相乘得到异配候选图：</p>
+$$\tilde{H}=\bar{S}\odot\bar{A}$$
+<p>其中，<code class="notranslate">\odot</code> 表示 Hadamard product，即逐元素相乘。</p>
+<p>这个公式的含义是：如果两个节点在特征上不相似，同时在原始图结构中也不相邻，那么它们可以作为异配关系的候选节点对。</p>
+<p>为了避免异配图过于稠密，论文只保留每个节点对应的前 <code class="notranslate">k</code> 条最重要的异配边，文中实验里保留的是前 5 条边。</p>
+<ul>
+<li>
+<p>我的理解：</p>
+<p>结构重构是本文最核心的第一步。它不是直接相信原始图的边，而是重新构造两种视角：一种找“像我的人”，另一种找“不像我的人”。这样模型不用提前知道目标图到底是同配还是异配，而是把两种可能都保留下来。</p>
+</li>
+</ul>
+<h3>2. 模块 B：自适应图滤波与双编码器表示学习</h3>
+<ul>
+<li>
+<p>做什么：</p>
+<p>对重构出的同配图和异配图分别提取信号，然后用两个编码器分别学习同配表示和异配表示。</p>
+</li>
+<li>
+<p>输入输出：</p>
+<p>输入：</p>
+<ul>
+<li>同配图 <code class="notranslate">A_O</code></li>
+<li>异配图 <code class="notranslate">A_E</code></li>
+<li>节点特征 <code class="notranslate">X</code></li>
+</ul>
+<p>输出：</p>
+<ul>
+<li>同配表示 <code class="notranslate">Z_O</code></li>
+<li>异配表示 <code class="notranslate">Z_E</code></li>
+</ul>
+</li>
+<li>
+<p>为什么这样设计：</p>
+<p>同配图和异配图包含的信息不同：</p>
+<ul>
+<li>同配图中，相连节点更可能相似，适合平滑。</li>
+<li>异配图中，相连节点可能不同，适合保留差异。</li>
+</ul>
+<p>因此不能用同一种滤波和同一个编码器混合处理，否则同配信息和异配信息可能互相干扰。</p>
+</li>
+<li>
+<p>关键公式/机制：</p>
+<p>异配信号：</p>
+</li>
+</ul>
+$$Z_E=\gamma\left(\frac{1}{2}L_E\right)^kX$$
+<p>同配信号：</p>
+$$Z_O=(1-\gamma)\left(I-\frac{1}{2}L_O\right)^kX$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">L_E</code>：异配图拉普拉斯矩阵。</li>
+<li><code class="notranslate">L_O</code>：同配图拉普拉斯矩阵。</li>
+<li><code class="notranslate">k</code>：滤波阶数。</li>
+<li><code class="notranslate">\gamma</code>：可学习参数，用于平衡异配信息和同配信息。</li>
+</ul>
+<p>同配分支近似低通滤波，强调邻居之间的共性；异配分支近似高通滤波，强调节点与邻居之间的差异。</p>
+<p>编码器公式：</p>
+$$Z_E = E_{\theta_E}(Z_E)$$
+$$Z_O = E_{\theta_O}(Z_O)$$
+<p>这个公式中左右两边都写 <code class="notranslate">Z_E, Z_O</code>，容易混淆。更清楚的理解是：</p>
+$$\hat{Z}_E = E_{\theta_E}(Z_E)$$
+$$\hat{Z}_O = E_{\theta_O}(Z_O)$$
+<p>即：</p>
+<ul>
+<li>异配滤波信号进入异配编码器，得到异配表示。</li>
+<li>同配滤波信号进入同配编码器，得到同配表示。</li>
+</ul>
+<p>两个编码器都是 MLP，且不共享参数。</p>
+<ul>
+<li>
+<p>我的理解：</p>
+<p>这一部分像是给图配了两个专家：同配专家负责找相似性，异配专家负责找差异性。参数 <code class="notranslate">\gamma</code> 则负责决定当前任务中更应该相信哪一种信号。这个设计比直接用一个 GNN 聚合原始邻居更稳健，因为它避免了在异配图中盲目平滑导致类别信息混淆。</p>
+</li>
+</ul>
+<h3>3. 模块 C：同配/异配分别对齐与特征重构</h3>
+<ul>
+<li>
+<p>做什么：</p>
+<p>一方面通过解码器保证学到的表示没有丢掉原始信息，另一方面通过 KL 散度让源域和目标域在同配空间、异配空间中分别对齐。</p>
+</li>
+<li>
+<p>输入输出：</p>
+<p>输入：</p>
+<ul>
+<li>源域同配表示 <code class="notranslate">Z_O^S</code></li>
+<li>源域异配表示 <code class="notranslate">Z_E^S</code></li>
+<li>目标域同配表示 <code class="notranslate">Z_O^T</code></li>
+<li>目标域异配表示 <code class="notranslate">Z_E^T</code></li>
+</ul>
+<p>输出：</p>
+<ul>
+<li>对齐后的源目标表示</li>
+<li>用于目标节点分类的最终目标域表示</li>
+</ul>
+</li>
+<li>
+<p>为什么这样设计：</p>
+<p>解码器重构只能保证源域和目标域各自学到的表示保留了节点信息，但不能保证源域和目标域处于同一个可迁移的表示空间。因此还需要对齐损失。</p>
+<p>同时，直接整体对齐可能把同配信号和异配信号混在一起，所以本文采用分别对齐：</p>
+<ul>
+<li>源域同配表示对齐目标域同配表示。</li>
+<li>源域异配表示对齐目标域异配表示。</li>
+</ul>
+</li>
+<li>
+<p>关键公式/机制：</p>
+<p>对齐损失：</p>
+</li>
+</ul>
+$$\mathcal{L}_A
+  =
+  KL(Z_E^S\|Z_E^T)
+  +
+  KL(Z_O^S\|Z_O^T)$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">KL(Z_E^S\|Z_E^T)</code>：缩小源域异配表示和目标域异配表示的分布差异。</li>
+<li><code class="notranslate">KL(Z_O^S\|Z_O^T)</code>：缩小源域同配表示和目标域同配表示的分布差异。</li>
+</ul>
+<p>特征重构损失：</p>
+$$\mathcal{L}_{RE}
+  =
+  \sum_{i=1}^{N}
+  \left(
+  1-
+  \frac{
+  Z_i^\top \bar{Z}_i
+  }{
+  \|Z_i\|\cdot\|\bar{Z}_i\|
+  }
+  \right)^\beta$$
+<p>它使用缩放余弦误差，比较编码后的表示 <code class="notranslate">Z_i</code> 与解码器重构出的表示 <code class="notranslate">\bar{Z}_i</code> 是否相似。</p>
+<p>相关性降低损失：</p>
+$$\mathcal{L}_{CR}
+  =
+  \frac{1}{d^2}
+  \sum_{i=1}^{d}
+  (K_{ii}-1)^2
+  +
+  \frac{1}{d^2-d}
+  \sum_{i=1}^{d}
+  \sum_{j\neq i}
+  K_{ij}^2$$
+<p>其中：</p>
+$$K_{ij}
+  =
+  \frac{
+  Z_{Ei}^{\top}Z_{Oj}
+  }{
+  \|Z_{Ei}\|\cdot\|Z_{Oj}\|
+  }$$
+<p>该损失用于防止表示塌缩，即避免所有节点都被编码成相似的向量，同时减少不同表示维度之间的冗余。</p>
+<p>总损失：</p>
+$$\mathcal{L}
+  =
+  \mathcal{L}_{CR}
+  +
+  \mu_1\mathcal{L}_{RE}
+  +
+  \mu_2\mathcal{L}_A$$
+<p>其中：</p>
+<ul>
+<li>
+<p><code class="notranslate">\mathcal{L}_{CR}</code>：防止表示塌缩。</p>
+</li>
+<li>
+<p><code class="notranslate">\mathcal{L}_{RE}</code>：保证表示能保留原始信息。</p>
+</li>
+<li>
+<p><code class="notranslate">\mathcal{L}_A</code>：进行源目标对齐。</p>
+</li>
+<li>
+<p><code class="notranslate">\mu_1, \mu_2</code>：控制重构损失和对齐损失的权重。</p>
+</li>
+<li>
+<p>我的理解：</p>
+<p>重构和对齐不是重复功能。重构保证“每个域自己没有丢信息”，对齐保证“源域和目标域可以迁移”。如果只有重构，源域和目标域可能各自学得很好，但不在同一个空间中；如果只有对齐，模型可能为了让源域和目标域接近而丢掉有用信息。因此两者需要同时使用。</p>
+</li>
+</ul>
+<h3>4. 训练与推理</h3>
+<ul>
+<li>
+<p>训练：</p>
+<p>训练时源图和目标图同时进入模型。流程如下：</p>
+<ol>
+<li>对源图和目标图分别重构同配图和异配图。</li>
+<li>对同配图进行低通滤波，对异配图进行高通滤波。</li>
+<li>使用两个 MLP 编码器分别学习同配表示和异配表示。</li>
+<li>在每个域内部拼接同配表示和异配表示。</li>
+<li>使用解码器做特征重构，计算 <code class="notranslate">\mathcal{L}_{RE}</code>。</li>
+<li>使用相关性降低损失防止表示塌缩，计算 <code class="notranslate">\mathcal{L}_{CR}</code>。</li>
+<li>分别对齐源域和目标域的同配表示、异配表示，计算 <code class="notranslate">\mathcal{L}_A</code>。</li>
+<li>使用总损失联合训练整个表示学习框架。</li>
+</ol>
+<p>需要注意的是，论文公式中的总损失主要写了 <code class="notranslate">\mathcal{L}_{CR}, \mathcal{L}_{RE}, \mathcal{L}_A</code>，源域分类监督项没有在该公式中清晰展开。但由于任务是源域有标签的节点分类，实际分类预测通常还需要使用源域标签训练分类器或分类头。</p>
+</li>
+<li>
+<p>推理：</p>
+<p>推理时只需要目标图：</p>
+<ol>
+<li>对目标图重构同配图和异配图。</li>
+<li>分别滤波得到目标同配信号和异配信号。</li>
+<li>使用编码器得到 <code class="notranslate">Z_O^T</code> 和 <code class="notranslate">Z_E^T</code>。</li>
+<li>拼接得到目标域最终表示：</li>
+</ol>
+</li>
+</ul>
+$$Z^T = concat(Z_O^T, Z_E^T)$$
+<ol start="5">
+<li>将目标域最终表示送入分类器，得到目标节点预测结果。</li>
+</ol>
+<ul>
+<li>
+<p>与已有方法的关键区别：</p>
+<p>传统 GDA 方法通常直接使用原始图结构，并默认邻居之间相似；RSGDA 不直接依赖原始图，而是先重构同配图和异配图，再分别提取和对齐两类信号。它也不是典型的消息传递 GNN，而是使用图滤波加 MLP 编码器/解码器的方式利用图结构。</p>
+</li>
+</ul>
+<h2>创新点</h2>
+<ol>
+<li>提出 homophily-agnostic 的 GDA 框架，不需要提前知道目标图是同配还是异配。</li>
+<li>对源图和目标图分别重构同配图和异配图，使模型能够同时利用相似结构和差异结构。</li>
+<li>设计同配/异配分别滤波、分别编码、分别对齐的机制，避免两类结构信号混淆。</li>
+<li>引入特征重构和相关性降低损失，缓解表示丢失与表示塌缩问题。</li>
+</ol>
+<h2>实验与结论</h2>
+<h3>实验设置</h3>
+<ul>
+<li>
+<p>数据集：</p>
+<p>论文使用了多类图数据集，包括：</p>
+<ul>
+<li>Airport：USA, Brazil, Europe</li>
+<li>Citation：ACMv9, Citationv1, DBLPv7</li>
+<li>Social：Blog1, Blog2</li>
+<li>WebKB：Texas, Cornell, Wisconsin</li>
+<li>ACM 同配变化数据：ACM3, ACM4</li>
+</ul>
+</li>
+<li>
+<p>任务：</p>
+<p>跨网络节点分类，即从一个有标签源图迁移到一个无标签目标图。</p>
+</li>
+<li>
+<p>baseline：</p>
+<p>包括：</p>
+<ul>
+<li>GCN</li>
+<li>DANN</li>
+<li>DANE</li>
+<li>UDAGCN</li>
+<li>ASN</li>
+<li>EGI</li>
+<li>GRADE-N</li>
+<li>JHGDA</li>
+<li>SpecReg</li>
+<li>PA</li>
+<li>HGDA</li>
+</ul>
+</li>
+<li>
+<p>指标：</p>
+<p>节点分类准确率，Accuracy。</p>
+</li>
+</ul>
+<h3>主要结果</h3>
+<ul>
+<li>RSGDA 在 Airport、Citation、ACM、Blog、WebKB 等多个跨图迁移任务中整体表现较强。</li>
+<li>在同配程度差异较大的任务中，例如 ACM3 到 ACM4、ACM4 到 ACM3，RSGDA 仍然取得较好效果，说明其同配无关设计具有一定稳健性。</li>
+<li>在 WebKB 这类典型异配图任务上，RSGDA 在多个迁移方向上相比多数 baseline 有明显提升，说明同配/异配分别建模对异配图迁移有帮助。</li>
+<li>需要注意的是，论文正文声称 RSGDA 在所有跨域场景中表现最好，但表 3 中 CO→WI 这一列 SpecReg 明显高于 RSGDA，正文表述与表格存在不一致，阅读时需要留意。</li>
+</ul>
+<h3>分析实验</h3>
+<ul>
+<li>
+<p>消融：</p>
+<p>论文比较了 RSGDA 与三个变体：</p>
+<ul>
+<li>RSGDA_1：去掉相关性降低损失 <code class="notranslate">\mathcal{L}_{CR}</code>。</li>
+<li>RSGDA_2：去掉特征重构损失 <code class="notranslate">\mathcal{L}_{RE}</code>。</li>
+<li>RSGDA_3：不使用结构重构，而是随机分图。</li>
+</ul>
+<p>结果显示完整 RSGDA 通常最好，尤其 RSGDA_3 下降较明显，说明结构重构模块是关键贡献。</p>
+</li>
+<li>
+<p>可视化：</p>
+<p>图 2(b) 展示了原始图、重构同配图、重构异配图的同配分布变化，说明 RSGDA 的结构重构可以一定程度上分离同配和异配结构。</p>
+</li>
+<li>
+<p>额外发现：</p>
+<p>图 3 显示不同 hop 下同配率会变化，说明只看一跳邻居是不够的，多跳结构信息对重构同配图有帮助。图 5 表明 <code class="notranslate">\mu_1</code> 和 <code class="notranslate">\mu_2</code> 在一定范围内变化时，RSGDA 的性能相对稳定。</p>
+</li>
+</ul>
+<h2>不足与问题</h2>
+<ol>
+<li>源域分类监督损失在论文总目标公式中没有清晰展开，训练分类器的具体细节需要进一步查看代码或补充材料。</li>
+<li>异配图构造依赖“特征不相似且原来不相邻”的假设，但这个假设不一定总是成立。</li>
+<li>方法包含结构重构、滤波、双编码器、解码器、相关性损失和 KL 对齐等多个部分，整体流程较复杂，复现成本可能较高。</li>
+<li>论文正文与表格结果存在至少一处不一致，例如 CO→WI 任务中 RSGDA 并不是最好。</li>
+<li>官方代码链接暂未找到，可能会影响复现和进一步验证。</li>
+<li>虽然方法声称 homophily-agnostic，但重构图的质量仍然依赖节点特征相似度和结构假设；如果节点特征本身质量较差，方法效果可能受影响。</li>
+</ol>
+<h2>和我当前研究的关系</h2>
+<ul>
+<li>
+<p>可借鉴点：</p>
+<p>如果当前研究涉及图领域自适应、异配图学习、跨图迁移、无监督目标域适配，那么这篇论文的“同配/异配分解建模”非常值得借鉴。它提供了一种不依赖目标标签判断同配程度的处理思路。</p>
+</li>
+<li>
+<p>可复用模块：</p>
+<ul>
+<li>同配图结构重构模块。</li>
+<li>异配图结构重构模块。</li>
+<li>低通/高通双滤波模块。</li>
+<li>同配/异配双编码器结构。</li>
+<li>同配/异配分别对齐损失。</li>
+<li>特征重构损失与相关性降低损失。</li>
+</ul>
+</li>
+<li>
+<p>能否作为 baseline：</p>
+<p>可以作为图领域自适应，尤其是异配图 GDA 或同配程度变化场景下的重要 baseline。但由于官方代码暂未找到，复现时可能需要自行实现结构重构与训练流程。</p>
+</li>
+<li>
+<p>对我最有启发的一点：</p>
+<p>不要把一张图粗暴地判断为同配或异配。现实图往往同时存在同配和异配结构，因此可以把图拆成多个结构视角，再分别学习和对齐。这种“结构分解 + 分支对齐”的思想可以推广到其他图迁移或图表示学习任务中。</p>
+</li>
+</ul>
+<h2>最终总结</h2>
+<ul>
+<li>
+<p>值不值得重点跟进：</p>
+<p>值得跟进，尤其适合关注图领域自适应、异配图学习、图结构重构和无监督迁移学习的研究方向。</p>
+</li>
+<li>
+<p>一句话评价：</p>
+<p>RSGDA 的核心价值在于把“目标图同配程度未知”这个难题转化为“同时构造同配视角和异配视角并分别对齐”的问题，是一篇思路清晰、模块较完整、对异配图迁移有启发意义的 GDA 工作。</p>
+</li>
+</ul></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://hx-nous.github.io">hx-nous</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","hx-nous/hx-nous.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+<script>MathJax = {tex: {inlineMath: [["$", "$"]]}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</html>
