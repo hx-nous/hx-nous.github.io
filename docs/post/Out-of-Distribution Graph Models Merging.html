@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html data-color-mode="light" data-dark-theme="dark" data-light-theme="light" lang="zh-CN">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="content-type" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link href='https://mirrors.sustech.edu.cn/cdnjs/ajax/libs/Primer/21.0.7/primer.css' rel='stylesheet' />
+    
+    <link rel="icon" href="https://avatars.githubusercontent.com/u/119385115?v=4"><script>
+        let theme = localStorage.getItem("meek_theme") || "light";
+        document.documentElement.setAttribute("data-color-mode", theme);
+    </script>
+<meta name="description" content="# Out-of-Distribution Graph Models Merging
+
+* 会议/期刊：ICLR 2026
+* 年份：2026
+* 论文链接：[OpenReview](https://openreview.net/forum?id=93Y7jSUSpk) ｜ [arXiv](https://arxiv.org/abs/2506.03674)
+* 代码链接：[OGMM](https://github.com/siriuslay/OGMM)
+
+## 一句话总结
+
+本文研究如何在无法访问源域数据和目标域数据的情况下，融合多个在不同域上预训练、甚至架构不同的 GNN；作者先从每个模型中反演生成合成图，再利用参数掩码和稀疏 MoE 动态融合专家，并在论文设置的 OOD 测试域上优于所选 baseline。">
+<meta property="og:title" content="Out-of-Distribution Graph Models Merging">
+<meta property="og:description" content="# Out-of-Distribution Graph Models Merging
+
+* 会议/期刊：ICLR 2026
+* 年份：2026
+* 论文链接：[OpenReview](https://openreview.net/forum?id=93Y7jSUSpk) ｜ [arXiv](https://arxiv.org/abs/2506.03674)
+* 代码链接：[OGMM](https://github.com/siriuslay/OGMM)
+
+## 一句话总结
+
+本文研究如何在无法访问源域数据和目标域数据的情况下，融合多个在不同域上预训练、甚至架构不同的 GNN；作者先从每个模型中反演生成合成图，再利用参数掩码和稀疏 MoE 动态融合专家，并在论文设置的 OOD 测试域上优于所选 baseline。">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://hx-nous.github.io/post/Out-of-Distribution%20Graph%20Models%20Merging.html">
+<meta property="og:image" content="https://avatars.githubusercontent.com/u/119385115?v=4">
+<title>Out-of-Distribution Graph Models Merging</title>
+
+
+
+</head>
+<style>
+body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;padding: 45px;font-size: 16px;font-family: sans-serif;line-height: 1.25;}
+#header{display:flex;padding-bottom:8px;border-bottom: 1px solid var(--borderColor-muted, var(--color-border-muted));margin-bottom: 16px;}
+#footer {margin-top:64px; text-align: center;font-size: small;}
+
+</style>
+
+<style>
+.postTitle{margin: auto 0;font-size:40px;font-weight:bold;}
+.title-right{display:flex;margin:auto 0 0 auto;}
+.title-right .circle{padding: 14px 16px;margin-right:8px;}
+#postBody{border-bottom: 1px solid var(--color-border-default);padding-bottom:36px;}
+#postBody hr{height:2px;}
+#cmButton{height:48px;margin-top:48px;}
+#comments{margin-top:64px;}
+.g-emoji{font-size:24px;}
+@media (max-width: 600px) {
+    body {padding: 8px;}
+    .postTitle{font-size:24px;}
+}
+
+</style>
+
+
+
+
+<body>
+    <div id="header">
+<h1 class="postTitle">Out-of-Distribution Graph Models Merging</h1>
+<div class="title-right">
+    <a href="https://hx-nous.github.io" id="buttonHome" class="btn btn-invisible circle" title="首页">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathHome" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+    <a href="https://github.com/hx-nous/hx-nous.github.io/issues/20" target="_blank" class="btn btn-invisible circle" title="Issue">
+        <svg class="octicon" width="16" height="16">
+            <path id="pathIssue" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+    
+
+    <a class="btn btn-invisible circle" onclick="modeSwitch();" title="切换主题">
+        <svg class="octicon" width="16" height="16" >
+            <path id="themeSwitch" fill-rule="evenodd"></path>
+        </svg>
+    </a>
+
+</div>
+</div>
+    <div id="content">
+<div class="markdown-body" id="postBody"><h1>Out-of-Distribution Graph Models Merging</h1>
+<ul>
+<li>会议/期刊：ICLR 2026</li>
+<li>年份：2026</li>
+<li>论文链接：<a href="https://openreview.net/forum?id=93Y7jSUSpk" rel="nofollow">OpenReview</a> ｜ <a href="https://arxiv.org/abs/2506.03674" rel="nofollow">arXiv</a></li>
+<li>代码链接：<a href="https://github.com/siriuslay/OGMM">OGMM</a></li>
+</ul>
+<h2>一句话总结</h2>
+<p>本文研究如何在无法访问源域数据和目标域数据的情况下，融合多个在不同域上预训练、甚至架构不同的 GNN；作者先从每个模型中反演生成合成图，再利用参数掩码和稀疏 MoE 动态融合专家，并在论文设置的 OOD 测试域上优于所选 baseline。</p>
+<h2>研究问题</h2>
+<h3>背景</h3>
+<p>传统图域泛化通常需要同时访问多个源域的原始图数据，然后从头训练一个能够泛化到未知目标域的模型。</p>
+<p>但现实中可能只保留了已经训练好的模型，而无法再次访问原始训练数据。例如：</p>
+<ul>
+<li>不同机构分别训练了自己的 GNN，但由于隐私问题不能共享数据。</li>
+<li>不同模型可能使用 GCN、GAT、GIN 等不同架构。</li>
+<li>每个模型在自己的训练域上表现较好，但迁移到其他分布时性能明显下降。</li>
+<li>重新收集全部数据并从头训练，会浪费已有模型中的知识。</li>
+</ul>
+<p>论文将这一问题称为 <strong>Out-of-Distribution Graph Models Merging，分布外图模型融合</strong>。</p>
+<p>输入是多个分别在不同源域上训练的预训练 GNN：</p>
+$$\left\{
+f(\Theta_1),
+f(\Theta_2),
+\ldots,
+f(\Theta_M)
+\right\}$$
+<p>其中，<code class="notranslate">\Theta_i</code> 表示第 <code class="notranslate">i</code> 个预训练模型的参数。</p>
+<h3>核心问题</h3>
+<p>如何在不访问源域数据和目标域数据的情况下，只利用多个预训练 GNN 中隐含的知识，得到一个能够泛化到未知目标域的融合模型？</p>
+<p>论文定义的理想融合目标为：</p>
+$$\Gamma^*
+=
+\arg\min_{\alpha}
+E_{G_T,Y}
+\left[
+\ell
+\left(
+\Gamma
+\left(
+\alpha,
+\left\{
+\Theta_1,
+\Theta_2,
+\ldots,
+\Theta_M
+\right\}
+\right),
+G_T,
+Y
+\right)
+\right]$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">G_T</code> 表示未知目标域。</li>
+<li><code class="notranslate">\Gamma</code> 表示模型融合函数。</li>
+<li><code class="notranslate">\alpha</code> 表示不同模型的融合权重。</li>
+<li><code class="notranslate">\ell</code> 表示预测损失。</li>
+</ul>
+<h3>现有方法不足</h3>
+<ul>
+<li>传统图域泛化方法需要访问多个源域的原始图数据，通常还需要从头训练模型。</li>
+<li>普通参数平均要求模型具有相同架构和相同参数维度，难以直接融合 GCN、GAT、GIN 等异构模型。</li>
+<li>简单概率平均无法针对不同输入动态选择最合适的专家，也不能进一步调整专家中包含的域特定知识。</li>
+</ul>
+<h2>核心思路</h2>
+<ol>
+<li>将每个预训练 GNN 当作一个冻结的监督模型，从随机节点特征和随机图结构出发，反演生成一批标签条件合成图。</li>
+<li>将所有专家生成的合成图合并，构造一个近似包含多个源域知识的训练集合。</li>
+<li>将每个预训练 GNN 保留为一个专家，通过参数 Mask 进行轻量调整，并使用稀疏 Top-<code class="notranslate">k</code> Gate 为每个输入动态选择专家。</li>
+</ol>
+<p>论文首先假设目标域分布可以由多个源域分布混合得到：</p>
+$$G_T
+=
+\sum_{i=1}^{M}
+\alpha_i G_i$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">G_i</code> 表示第 <code class="notranslate">i</code> 个源域分布。</li>
+<li><code class="notranslate">\alpha_i</code> 表示该源域对目标域的贡献。</li>
+<li><code class="notranslate">M</code> 表示源域数量。</li>
+</ul>
+<p>基于这一假设，融合模型也可以表示为多个源模型函数的组合：</p>
+$$\Gamma
+=
+\sum_{i=1}^{M}
+\alpha_i f(\Theta_i)$$
+<p>实际方法中，<code class="notranslate">\alpha_i</code> 并不是一组固定权重，而是由 MoE Gate 根据每个输入图动态产生。</p>
+<h2>方法要点</h2>
+<h3>1. 标签条件图生成</h3>
+<ul>
+<li>
+<p>做什么：</p>
+<p>从每个预训练 GNN 中反演出一批合成图，将隐藏在模型参数中的源域知识重新转化为可用于训练的数据。</p>
+</li>
+<li>
+<p>输入输出：</p>
+<p>输入包括：</p>
+<ul>
+<li>冻结的预训练模型 <code class="notranslate">f(\Theta_i)</code>；</li>
+<li>从标准正态分布采样的节点特征 <code class="notranslate">X_i</code>；</li>
+<li>从标签空间随机采样的条件标签 <code class="notranslate">\hat y_i</code>。</li>
+</ul>
+<p>输出是第 <code class="notranslate">i</code> 个专家对应的合成图集合 <code class="notranslate">G_i^*</code>。每张合成图包含节点特征、邻接结构和条件标签。</p>
+</li>
+<li>
+<p>为什么这样设计：</p>
+<p>融合阶段无法访问原始源域数据，但 Gate 和 Mask 仍然需要训练数据。</p>
+<p>因此，作者固定预训练模型，反过来优化模型输入，使生成图能够被该模型高置信度地预测为指定类别。</p>
+</li>
+<li>
+<p>关键公式/机制：</p>
+<p>对任意两个节点 <code class="notranslate">j</code> 和 <code class="notranslate">k</code>，先拼接它们的节点特征，再通过三层 MLP 预测连边概率：</p>
+</li>
+</ul>
+$$A_{jk}^{i}
+=
+\sigma
+\left(
+\mathrm{MLP}_{\theta}
+\left(
+\left[
+X_j^{i};
+X_k^{i}
+\right]
+\right)
+\right)$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">X_j^i</code> 和 <code class="notranslate">X_k^i</code> 是两个节点的特征。</li>
+<li><code class="notranslate">[X_j^i;X_k^i]</code> 表示特征拼接。</li>
+<li><code class="notranslate">A_{jk}^i</code> 表示节点之间的连边概率。</li>
+<li><code class="notranslate">\sigma</code> 表示激活函数。</li>
+</ul>
+<p>为了让连续的连边概率逐渐接近离散的 0 或 1，作者使用 Gumbel-Softmax：</p>
+$$A_{jk}^{i}
+=
+\mathrm{softmax}
+\left(
+\frac{
+\log A_{jk}^{i}
++
+\mu
+}{
+\tau
+}
+\right)$$
+<p>Gumbel 噪声为：</p>
+$$\mu
+=
+-\log
+\left(
+-\log e
+\right),
+\qquad
+e
+\sim
+U(0,1)$$
+<p>其中，<code class="notranslate">\tau</code> 是温度参数。论文认为当 <code class="notranslate">\tau</code> 趋近于 0 时，生成的边会更加接近二值结果。</p>
+<p>除了标签分类损失，作者还使用了 BN 统计匹配。按照论文的设计意图，可以简化理解为：</p>
+$$R_{\mathrm{bn}}
+=
+\sum_L
+\left\|
+\mu_L(\hat X_i)
+-
+\mu_L^{\mathrm{BN}}
+\right\|_2^2
++
+\sum_L
+\left\|
+\sigma_L^2(\hat X_i)
+-
+\left(
+\sigma_L^{\mathrm{BN}}
+\right)^2
+\right\|_2^2$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">\mu_L^{\mathrm{BN}}</code> 和 <code class="notranslate">(\sigma_L^{\mathrm{BN}})^2</code> 是预训练时保存在第 <code class="notranslate">L</code> 个 BN 层中的均值和方差。</li>
+<li><code class="notranslate">\mu_L(\hat X_i)</code> 和 <code class="notranslate">\sigma_L^2(\hat X_i)</code> 是合成图经过该 BN 层时产生的统计量。</li>
+</ul>
+<p>该正则要求合成图在模型中产生的隐藏表示，尽量接近模型训练时见过的数据分布。</p>
+<p>作者还加入预测置信度正则，本质上是最小化预测熵：</p>
+$$R_{\mathrm{conf}}
+=
+E_{G_i\sim G_j^*}
+\left[
+-
+\sum_{c=1}^{C}
+p_c(G_i)
+\log p_c(G_i)
+\right]$$
+<p>其中，<code class="notranslate">p_c(G_i)</code> 表示模型将图 <code class="notranslate">G_i</code> 预测为第 <code class="notranslate">c</code> 类的概率。</p>
+<p>当预测接近 <code class="notranslate">[0.5,0.5]</code> 时，熵较大，说明类别模糊；当预测接近 <code class="notranslate">[0.99,0.01]</code> 时，熵较小，说明模型对类别更加确定。</p>
+<p>最终生成损失为：</p>
+$$L_{\mathrm{gen}}
+=
+\sum_{G_i\in G_j^*}
+C
+\left(
+\hat y_i,
+f(\Theta_j,G_i)
+\right)
++
+R_{\mathrm{bn}}
++
+R_{\mathrm{conf}}$$
+<p>这三个部分分别要求：</p>
+<ol>
+<li>生成图能够被预测为指定类别。</li>
+<li>生成图的中间特征接近源模型保存的统计分布。</li>
+<li>源模型对生成图具有较高置信度。</li>
+</ol>
+<ul>
+<li>
+<p>我的理解：</p>
+<p>这一阶段不是恢复真实的源域图，而是在寻找“该模型认为比较典型”的输入图。</p>
+<p>因此，生成图反映的是预训练模型已经学到的知识和决策边界，而不是对原始数据的精确还原。如果预训练模型学到了错误相关性，生成器也可能将这种错误知识恢复出来。</p>
+</li>
+</ul>
+<h3>2. 参数掩码专家</h3>
+<ul>
+<li>
+<p>做什么：</p>
+<p>将每个预训练 GNN 保留为一个专家，不完整更新其全部参数，而是通过可学习的 Mask 对部分参数进行重新加权。</p>
+</li>
+<li>
+<p>输入输出：</p>
+<p>输入是第 <code class="notranslate">i</code> 个专家的原始参数 <code class="notranslate">\theta_*^i</code> 和对应的 Mask <code class="notranslate">\omega^i</code>。</p>
+<p>输出是经过轻量调整的有效参数 <code class="notranslate">\hat\theta_*^i</code>。</p>
+</li>
+<li>
+<p>为什么这样设计：</p>
+<p>如果完整微调每个专家，可能会破坏其原有源域知识，并带来较高的训练成本。</p>
+<p>如果完全冻结专家，又难以让专家适应其他源模型生成的数据。</p>
+<p>因此，作者通过 Mask 在“学习新域知识”和“保留原模型知识”之间进行平衡。</p>
+</li>
+<li>
+<p>关键公式/机制：</p>
+</li>
+</ul>
+$$\hat\theta_*^i
+=
+\theta_*^i
+\odot
+\omega^i$$
+<p>其中，<code class="notranslate">\odot</code> 表示逐元素乘法。</p>
+<p>对于某个 Mask 元素：</p>
+<ul>
+<li>接近 1：基本保留原参数。</li>
+<li>小于 1：减弱该参数的作用。</li>
+<li>大于 1：增强该参数的作用。</li>
+</ul>
+<p>论文主要将 Mask 加在分类头参数 <code class="notranslate">\theta_{\Phi}</code> 上，而冻结图编码器参数 <code class="notranslate">\theta_{\Psi}</code>。</p>
+<p>作者认为分类头与具体任务和域相关决策边界联系更紧密，因此只调整分类头能够以较少的可训练参数完成适应。</p>
+<ul>
+<li>
+<p>我的理解：</p>
+<p>Mask 相当于给预训练参数安装了一组可调节旋钮。</p>
+<p>它没有重新学习一套完整参数，而是在已有参数的基础上决定哪些知识应该增强、哪些知识应该抑制。</p>
+<p>需要注意的是，这种方法并没有将多个模型真正压缩成一个普通 GNN，推理时仍然需要保留多个完整专家。</p>
+</li>
+</ul>
+<h3>3. 稀疏 MoE 融合</h3>
+<ul>
+<li>
+<p>做什么：</p>
+<p>根据当前输入图计算不同专家的匹配分数，只选择 Top-<code class="notranslate">k</code> 个专家参与预测，再对这些专家的输出进行加权融合。</p>
+</li>
+<li>
+<p>输入输出：</p>
+<p>输入是当前图 <code class="notranslate">G_i</code> 和多个 Masked Expert。</p>
+<p>输出是不同专家的 Gate 权重以及最终融合预测。</p>
+</li>
+<li>
+<p>为什么这样设计：</p>
+<p>不同专家来自不同源域，也可能采用不同架构，因此它们擅长的图模式不同。</p>
+<p>固定平均会让所有样本使用相同的融合方式，容易把无关专家的错误信息引入预测。</p>
+<p>动态 Gate 可以针对每个样本，选择更加匹配的专家。</p>
+</li>
+<li>
+<p>关键公式/机制：</p>
+<p>标准 MoE 输出为：</p>
+</li>
+</ul>
+$$\hat H_i
+=
+\sigma
+\left(
+\sum_{j=1}^{M}
+\mathrm{Gate}(G_i)_j
+H_{i,j}
+\right)$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">H_{i,j}</code> 是第 <code class="notranslate">j</code> 个专家对第 <code class="notranslate">i</code> 个样本的输出。</li>
+<li><code class="notranslate">\mathrm{Gate}(G_i)_j</code> 是第 <code class="notranslate">j</code> 个专家的权重。</li>
+<li><code class="notranslate">\hat H_i</code> 是融合后的输出。</li>
+</ul>
+<p>Gate 首先计算当前样本对所有专家的匹配分数：</p>
+$$Q(G_i)
+=
+G_iW_g
++
+\epsilon
+\cdot
+\mathrm{softplus}
+\left(
+G_iW_n
+\right)$$
+<p>高斯噪声满足：</p>
+$$\epsilon
+\sim
+N(0,1)$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">W_g</code> 用于产生基础专家分数。</li>
+<li><code class="notranslate">W_n</code> 用于控制噪声大小。</li>
+<li>噪声用于增加训练初期的探索，避免所有样本过早集中到同一个专家。</li>
+</ul>
+<p>随后，只保留得分最高的 Top-<code class="notranslate">k</code> 个专家：</p>
+$$\mathrm{Gate}(G_i)
+=
+\mathrm{softmax}
+\left(
+\mathrm{TopK}
+\left(
+Q(G_i),
+k
+\right)
+\right)$$
+<p>最终融合函数为：</p>
+$$\Gamma_{\omega,W_g,W_n}(G_i)
+=
+\sum_{j=1}^{M}
+\mathrm{Gate}(G_i)_j
+f
+\left(
+\Theta_j,
+\omega_j,
+G_i
+\right)$$
+<p>为了防止 Gate 始终只选择同一个专家，作者加入负载均衡正则：</p>
+$$R_{\mathrm{gate}}
+=
+\mathrm{CV}
+\left(
+\sum_{G_i\in G^*}
+\mathrm{Gate}(G_i)
+\right)^2$$
+<p>其中，<code class="notranslate">\mathrm{CV}</code> 表示变异系数，可以理解为标准差与均值的比值。</p>
+<p>如果所有样本都集中到同一个专家，不同专家收到的总权重差异会很大，<code class="notranslate">R_{\mathrm{gate}}</code> 也会增大。</p>
+<p>论文中的 Mask 正则可以从功能上理解为：</p>
+$$R_{\mathrm{mask}}
+=
+R_{\mathrm{adapt}}
++
+R_{\mathrm{preserve}}$$
+<p>其中：</p>
+<ul>
+<li><code class="notranslate">R_{\mathrm{adapt}}</code> 要求每个 Masked Expert 能够学习其他专家生成的知识。</li>
+<li><code class="notranslate">R_{\mathrm{preserve}}</code> 限制 Mask 过度偏离 1，避免专家忘记原有知识。</li>
+</ul>
+<p>最终模型融合损失为：</p>
+$$L_{\mathrm{merge}}
+=
+\sum_{G_i\in G^*}
+C
+\left(
+\hat y_i,
+\Gamma_{\Phi}(G_i)
+\right)
++
+\lambda_{\mathrm{gate}}
+R_{\mathrm{gate}}
++
+\lambda_{\mathrm{mask}}
+R_{\mathrm{mask}}$$
+<p>其中：</p>
+$$\Phi
+=
+\left\{
+\omega,
+W_g,
+W_n
+\right\}$$
+<p><code class="notranslate">\Phi</code> 是融合阶段需要训练的参数集合。</p>
+<ul>
+<li>
+<p>我的理解：</p>
+<p>Gate 解决“当前样本应该相信哪些专家”，Mask 解决“每个专家中的哪些参数需要调整”。</p>
+<p>整个模块可以概括为：</p>
+<ul>
+<li>Gate：选择专家。</li>
+<li>Top-<code class="notranslate">k</code>：减少无关专家干扰。</li>
+<li>Mask：轻量调整专家。</li>
+<li>Gate 正则：防止单一专家坍塌。</li>
+<li>Mask 正则：防止原有知识被过度修改。</li>
+</ul>
+</li>
+</ul>
+<h3>4. 训练与推理</h3>
+<ul>
+<li>
+<p>训练：</p>
+<p>第一阶段进行标签条件图生成：</p>
+<ol>
+<li>为每个预训练 GNN 初始化随机节点特征。</li>
+<li>从标签空间中采样条件标签。</li>
+<li>冻结预训练 GNN 参数。</li>
+<li>使用边生成器预测邻接结构。</li>
+<li>使用 <code class="notranslate">L_{\mathrm{gen}}</code> 更新节点特征和边生成器。</li>
+<li>得到每个专家对应的合成图集合 <code class="notranslate">G_i^*</code>。</li>
+<li>将所有专家生成的数据组合为 <code class="notranslate">G^*</code>。</li>
+</ol>
+<p>第二阶段进行模型融合：</p>
+<ol>
+<li>保留所有预训练 GNN 作为专家。</li>
+<li>初始化分类头 Mask、Gate 参数 <code class="notranslate">W_g</code> 和噪声参数 <code class="notranslate">W_n</code>。</li>
+<li>使用合成图训练 Gate 和 Mask。</li>
+<li>优化 <code class="notranslate">L_{\mathrm{merge}}</code>。</li>
+<li>大部分原始 GNN 参数保持冻结。</li>
+</ol>
+</li>
+<li>
+<p>推理：</p>
+<p>推理时不再运行图生成器。</p>
+<p>对一个真实目标图：</p>
+<ol>
+<li>Gate 计算它与所有专家的匹配分数。</li>
+<li>选择 Top-<code class="notranslate">k</code> 个专家。</li>
+<li>运行被选中的 Masked Expert。</li>
+<li>对专家输出进行加权求和。</li>
+<li>得到最终预测结果。</li>
+</ol>
+</li>
+<li>
+<p>与已有方法的关键区别：</p>
+<ul>
+<li>与传统图域泛化不同：融合阶段不使用真实源域数据。</li>
+<li>与无源域适应不同：主方法训练融合器时也不使用目标域数据。</li>
+<li>与参数平均不同：不要求不同专家具有相同的参数结构。</li>
+<li>与普通集成不同：专家权重由每个输入样本动态决定。</li>
+<li>与真正的单模型参数融合不同：最终仍保留多个完整专家，本质上更接近动态 MoE 集成。</li>
+</ul>
+</li>
+</ul>
+<h2>创新点</h2>
+<ol>
+<li>提出了分布外图模型融合问题：在源域数据和目标域数据均不可访问的情况下，利用多个跨域预训练 GNN 构造具有 OOD 泛化能力的融合模型。</li>
+<li>提出了标签条件图反演方法，同时优化节点特征和图结构，将预训练模型中隐含的源域知识转化为少量合成图。</li>
+<li>使用 Masked Experts 和稀疏 Top-<code class="notranslate">k</code> Gate，在输出空间动态融合 GCN、GAT、GIN 等异构模型，不要求模型参数结构一致。</li>
+</ol>
+<h2>实验与结论</h2>
+<h3>实验设置</h3>
+<ul>
+<li>
+<p>数据集：</p>
+<p>主实验使用：</p>
+<ul>
+<li>REDDIT-B</li>
+<li>PTC</li>
+<li>MUTAG</li>
+<li>NCI1</li>
+</ul>
+<p>论文附录还报告了其他图分类和节点分类数据集上的补充实验。</p>
+</li>
+<li>
+<p>任务：</p>
+<p>主实验为图分类。</p>
+<p>对每个主数据集，作者按照图的边密度划分不同域：</p>
+<ul>
+<li>A 域：较低边密度。</li>
+<li>B 域：中等边密度。</li>
+<li>T 域：较高边密度，作为未知测试域。</li>
+</ul>
+<p>因此，论文主要验证的是同一数据集内部由结构统计差异产生的 OOD 偏移。</p>
+</li>
+<li>
+<p>baseline：</p>
+<p>单个预训练模型：</p>
+<ul>
+<li>GCN-A、GAT-A、GIN-A</li>
+<li>GCN-B、GAT-B、GIN-B</li>
+</ul>
+<p>简单集成：</p>
+<ul>
+<li>Avg-PTM</li>
+<li>Ens-Prob</li>
+<li>Ens-HighConf</li>
+</ul>
+<p>参数融合：</p>
+<ul>
+<li>Uni-Soup</li>
+<li>Greedy-Soup</li>
+</ul>
+<p>生成式方法：</p>
+<ul>
+<li>Inverse-X</li>
+<li>Multi-GFKD</li>
+</ul>
+<p>其中，Inverse-X 和 Multi-GFKD 是作者为当前场景构造或扩展的比较方法。</p>
+</li>
+<li>
+<p>指标：</p>
+<ul>
+<li>Accuracy</li>
+<li>Precision</li>
+</ul>
+<p>论文报告 10 次运行的均值和标准差。</p>
+</li>
+</ul>
+<h3>主要结果</h3>
+<ul>
+<li>
+<p>OGMM 在论文列出的主实验方法中整体取得了最优结果。</p>
+</li>
+<li>
+<p>OGMM 在四个主数据集上的 Accuracy 为：</p>
+<ul>
+<li>REDDIT-B：<code class="notranslate">76.98 ± 5.19</code></li>
+<li>PTC：<code class="notranslate">51.21 ± 3.74</code></li>
+<li>MUTAG：<code class="notranslate">45.62 ± 18.67</code></li>
+<li>NCI1：<code class="notranslate">66.84 ± 0.45</code></li>
+</ul>
+</li>
+<li>
+<p>REDDIT-B 和 NCI1 上的提升相对明显，说明动态专家选择在较大数据集上具有较好的效果。</p>
+</li>
+<li>
+<p>PTC 上 OGMM 的 Accuracy 提升较小，说明该方法在所有数据集上并不都具有同样明显的优势。</p>
+</li>
+<li>
+<p>MUTAG 上 OGMM 的标准差达到 <code class="notranslate">18.67</code>，说明模型在小数据集上的稳定性仍然有限。</p>
+</li>
+</ul>
+<h3>分析实验</h3>
+<ul>
+<li>
+<p>消融：</p>
+<ul>
+<li>移除 MoE 后，模型改为简单融合专家输出，性能下降。</li>
+<li>移除 Mask 后，REDDIT-B 和 NCI1 上的性能明显下降。</li>
+<li>移除 <code class="notranslate">L_{\mathrm{gen}}</code>，直接使用随机输入训练融合模块，性能同样下降。</li>
+<li>在允许访问真实源域数据时，模型表现高于完全无源数据设置，说明合成图只能恢复部分源域知识，不能完全替代真实数据。</li>
+</ul>
+</li>
+<li>
+<p>可视化：</p>
+<ul>
+<li>t-SNE 结果显示，真实图与合成图在表示空间中存在一定重叠。</li>
+<li>生成图与真实图在节点数和边数范围上表现出一定相似性。</li>
+<li>训练阶段的 Gate 分布相对均衡。</li>
+<li>在真实目标域推理阶段，Gate 会明显偏向少数专家。</li>
+</ul>
+</li>
+<li>
+<p>额外发现：</p>
+<ul>
+<li>Top-<code class="notranslate">k</code> 中的 <code class="notranslate">k</code> 取 2 到 4 时通常效果较好。</li>
+<li>只对分类头增加 Mask，就能够获得具有竞争力的结果。</li>
+<li>分类头 Mask 平均只占两层 GNN 总参数量的约 20%。</li>
+<li>少量合成图就能取得较好性能，继续增加合成图数量不一定持续提升。</li>
+<li>增加源域数量不一定提升性能，因为每个域的数据量会减少，可能降低预训练专家质量。</li>
+</ul>
+</li>
+</ul>
+<h2>不足与问题</h2>
+<ol>
+<li>
+<p><strong>主实验 baseline 的覆盖范围和强度有限。</strong></p>
+<p>论文主要比较简单概率集成、Model Soup、Inverse-X 和 Multi-GFKD，缺少与更新的图模型融合、数据免费域泛化及多源无源适应方法进行充分比较。</p>
+<p>因此，实验能够说明 OGMM 优于论文所选择的方法，但不足以全面证明其相对于所有最新方法的优势。</p>
+</li>
+<li>
+<p><strong>主实验中的跨域主要是同一数据集内部的人为划分。</strong></p>
+<p>A、B、T 都来自同一个原始数据集，只是按照边密度进行划分。</p>
+<p>这种设置确实产生了结构分布偏移，但没有验证跨数据集、跨数据来源、特征空间变化或语义机制变化下的泛化能力。</p>
+<p>因此，更准确的说法是：论文验证了同一数据集内部的结构 OOD，而不是更复杂的跨数据集泛化。</p>
+</li>
+<li>
+<p><strong>混合分布假设较强，合成图质量依赖预训练模型。</strong></p>
+<p>论文假设目标域可以表示为源域的混合：</p>
+</li>
+</ol>
+$$G_T
+=
+\sum_{i=1}^{M}
+\alpha_iG_i$$
+<p>如果目标域包含所有源域都没有出现的新结构、新类别或新语义机制，已有专家的组合不一定能够覆盖目标域。</p>
+<p>此外，生成图只是能够让源模型高置信预测的图，不一定是真实、合法或具有实际语义的图。如果预训练专家存在偏差，生成器也可能恢复甚至放大这种偏差。</p>
+<ol start="4">
+<li>
+<p><strong>部分公式和实验说明不够严谨。</strong></p>
+<ul>
+<li>公式（8）直接对单个标量连边概率使用 <code class="notranslate">softmax</code>，没有明确写出标准二分类 Gumbel-Softmax 所需的两个类别分数。若严格按照标量 Softmax 理解，输出会恒为 1，因此该公式的写法不完整。</li>
+<li>公式（9）中的 BN 统计期望记号较难理解，没有清楚地区分保存的 BN 统计量和随机变量。</li>
+<li>公式（19）的索引、阈值项及符号解释比较压缩，难以从正文中准确判断每一项如何约束 Mask。</li>
+<li>理论部分将 <code class="notranslate">G^*</code> 表述为带权混合分布，但实际算法中主要是将不同专家的生成数据组合到一个训练集合中，两者并不完全等价。</li>
+<li>部分 Mask 位置实验涉及在目标域上微调模型，与主方法完全不使用目标域数据的设置不同，只能作为参数位置分析，不能直接视为主设定下的性能证据。</li>
+</ul>
+</li>
+<li>
+<p><strong>最终并没有真正合并成一个普通的单模型。</strong></p>
+<p>OGMM 推理时仍然需要保存：</p>
+<ul>
+<li>多个完整 GNN 专家；</li>
+<li>每个专家对应的 Mask；</li>
+<li>Gate 网络。</li>
+</ul>
+<p>因此，它更接近动态专家集成，而不是将多个模型压缩成一个参数统一的 GNN。</p>
+<p>随着专家数量增加，存储开销和推理成本也会增加。</p>
+</li>
+</ol>
+<h2>和我当前研究的关系</h2>
+<ul>
+<li>
+<p>可借鉴点：</p>
+<p>对当前 Route A 最有价值的不是合成图生成，而是：</p>
+<ol>
+<li>使用 Query 条件的 Top-<code class="notranslate">k</code> Gate，动态选择对当前 Query 域最有帮助的源域更新。</li>
+<li>使用模块级 Mask，选择每个源域更新中哪些层或模块值得迁移。</li>
+</ol>
+<p>你当前的 Route A 是：</p>
+<ul>
+<li>Support 域分别进行本地训练。</li>
+<li>获得各域的参数更新。</li>
+<li>根据更新方向和域统计构建语义域图。</li>
+<li>域 GNN 输出聚合权重。</li>
+<li>聚合本地更新得到新的全局模型。</li>
+<li>使用 Query 域损失训练聚合器。</li>
+</ul>
+<p>可以将域 GNN 输出作为全局先验 <code class="notranslate">\pi_d</code>，再结合 Query 表示产生最终域权重：</p>
+</li>
+</ul>
+$$s_d
+=
+\log\pi_d
++
+g(c_Q,z_d)$$
+$$w
+=
+\mathrm{softmax}
+\left(
+\mathrm{TopK}
+\left(
+s,
+K
+\right)
+\right)$$
+<p>其中：</p>
+<ul>
+<li>
+<p><code class="notranslate">z_d</code> 是第 <code class="notranslate">d</code> 个源域的表示。</p>
+</li>
+<li>
+<p><code class="notranslate">c_Q</code> 是当前 Query 批次的表示。</p>
+</li>
+<li>
+<p><code class="notranslate">w_d</code> 是最终参与聚合的域权重。</p>
+</li>
+<li>
+<p>可复用模块：</p>
+<ol>
+<li><strong>Top-<code class="notranslate">k</code> 域更新选择</strong></li>
+</ol>
+</li>
+</ul>
+$$\Delta\theta
+=
+\sum_{d\in\mathrm{TopK}}
+w_d
+\Delta\theta_d$$
+<p>只聚合与当前 Query 最相关的少数域更新，减少无关源域造成的负迁移。</p>
+<ol start="2">
+<li><strong>模块级 Mask</strong></li>
+</ol>
+$$\Delta\theta^{(l)}
+=
+\sum_d
+w_d
+m_d^{(l)}
+\Delta\theta_d^{(l)}$$
+<p>其中，<code class="notranslate">m_d^{(l)}</code> 表示第 <code class="notranslate">d</code> 个域在第 <code class="notranslate">l</code> 个模块上的可迁移程度。</p>
+<p>可以分别控制：</p>
+<ul>
+<li>节点与边编码器；</li>
+<li>局部消息传递层；</li>
+<li>全局 Attention 层；</li>
+<li>消息原型；</li>
+<li>分类头。</li>
+</ul>
+<ol start="3">
+<li><strong>与消息原型结合</strong></li>
+</ol>
+<p>假设每层存在 <code class="notranslate">K</code> 个全局共享的消息原型：</p>
+$$P^{(l)}
+=
+\left\{
+p_1^{(l)},
+p_2^{(l)},
+\ldots,
+p_K^{(l)}
+\right\}$$
+<p>每条消息可以由这些公共原型动态加权构成：</p>
+$$m_{\mathrm{proto}}^{(l)}
+=
+\sum_{k=1}^{K}
+a_k^{(l)}
+p_k^{(l)}$$
+<p>或者用原型组合增强原始消息：</p>
+$$\tilde m^{(l)}
+=
+m^{(l)}
++
+\beta_l
+\sum_{k=1}^{K}
+a_k^{(l)}
+p_k^{(l)}$$
+<p>可以分别统计第 <code class="notranslate">d</code> 个源域和 Query 域对不同消息原型的使用分布 <code class="notranslate">r_d</code> 与 <code class="notranslate">r_Q</code>。</p>
+<p>在域选择分数中加入原型分布相似度：</p>
+$$s_d
+=
+\log\pi_d
++
+g(c_Q,z_d)
++
+\eta
+\mathrm{sim}
+\left(
+r_Q,
+r_d
+\right)$$
+<p>这样可以优先选择与 Query 具有相似消息传递模式的源域，实现：</p>
+<ul>
+<li>
+<p>选择哪个源域；</p>
+</li>
+<li>
+<p>选择哪些消息原型；</p>
+</li>
+<li>
+<p>选择聚合模型的哪些模块。</p>
+</li>
+<li>
+<p>能否作为 baseline：</p>
+<p>不能直接把论文报告的 OGMM 结果作为 Route A 的完全公平 baseline，因为两者的数据访问条件和最终模型形式不同：</p>
+<ul>
+<li>OGMM 在融合阶段不能访问源域数据和目标域数据。</li>
+<li>Route A 在元训练阶段能够访问 Support 域和 Query 域。</li>
+<li>OGMM 推理时保留多个专家。</li>
+<li>Route A 的目标是聚合本地更新，得到一个统一的全局模型。</li>
+</ul>
+<p>更合理的方式是：</p>
+<ul>
+<li>将 OGMM 作为相关工作和方法启发。</li>
+<li>在统一的数据划分和数据访问条件下，实现一个 OGMM-style MoE 对照版本。</li>
+<li>或将其作为“保留多个域专家并进行动态路由”的对照方法。</li>
+</ul>
+</li>
+<li>
+<p>对我最有启发的一点：</p>
+<p>域图不一定需要直接给出最终聚合权重。</p>
+<p>更合理的设计是：</p>
+<ol>
+<li>域图学习源域之间的全局关系和可靠性先验。</li>
+<li>Query 表示动态修正不同源域的权重。</li>
+<li>消息原型分布衡量源域和 Query 在消息传递模式上的相似性。</li>
+<li>模块级 Mask 决定每个源域更新中的哪些部分值得迁移。</li>
+</ol>
+<p>最终可以形成：</p>
+</li>
+</ul>
+$$\mathrm{DomainPrior}
++
+\mathrm{QueryRouting}
++
+\mathrm{PrototypeMatching}
++
+\mathrm{ModuleMask}$$
+<p>即“选域、选消息、选模块”的细粒度聚合。</p>
+<h2>最终总结</h2>
+<ul>
+<li>
+<p>值不值得重点跟进：</p>
+<p>值得重点跟进其稀疏 Gate、Masked Expert 和异构模型输出融合思想，但不建议直接将完整的模型反演生成模块搬到 Route A 中。</p>
+<p>Route A 已经能够访问真实 Support 域数据，重新生成合成图会额外增加计算成本和生成误差。</p>
+<p>更适合复用的是动态域选择、Top-<code class="notranslate">k</code> 稀疏聚合和模块级更新筛选机制。</p>
+</li>
+<li>
+<p>一句话评价：</p>
+<p>这是一篇问题设定新颖、异构模型融合思路清晰的工作，但主要实验仍局限于同一数据集内部构造的域偏移，baseline 强度、部分公式严谨性以及“真正融合为单模型”的程度仍有不足。</p>
+</li>
+</ul></div>
+<div style="font-size:small;margin-top:8px;float:right;"></div>
+
+<button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
+<div class="comments" id="comments"></div>
+
+</div>
+    <div id="footer"><div id="footer1">Copyright © <span id="copyrightYear"></span> <a href="https://hx-nous.github.io">hx-nous</a></div>
+<div id="footer2">
+    <span id="runday"></span><span>Powered by <a href="https://meekdai.com/Gmeek.html" target="_blank">Gmeek</a></span>
+</div>
+
+<script>
+var now=new Date();
+document.getElementById("copyrightYear").innerHTML=now.getFullYear();
+
+if(""!=""){
+    var startSite=new Date("");
+    var diff=now.getTime()-startSite.getTime();
+    var diffDay=Math.floor(diff/(1000*60*60*24));
+    document.getElementById("runday").innerHTML="网站运行 "+diffDay+" 天"+" • ";
+}
+</script></div>
+</body>
+<script>
+var IconList={'sun': 'M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z', 'moon': 'M9.598 1.591a.75.75 0 01.785-.175 7 7 0 11-8.967 8.967.75.75 0 01.961-.96 5.5 5.5 0 007.046-7.046.75.75 0 01.175-.786zm1.616 1.945a7 7 0 01-7.678 7.678 5.5 5.5 0 107.678-7.678z', 'sync': 'M1.705 8.005a.75.75 0 0 1 .834.656 5.5 5.5 0 0 0 9.592 2.97l-1.204-1.204a.25.25 0 0 1 .177-.427h3.646a.25.25 0 0 1 .25.25v3.646a.25.25 0 0 1-.427.177l-1.38-1.38A7.002 7.002 0 0 1 1.05 8.84a.75.75 0 0 1 .656-.834ZM8 2.5a5.487 5.487 0 0 0-4.131 1.869l1.204 1.204A.25.25 0 0 1 4.896 6H1.25A.25.25 0 0 1 1 5.75V2.104a.25.25 0 0 1 .427-.177l1.38 1.38A7.002 7.002 0 0 1 14.95 7.16a.75.75 0 0 1-1.49.178A5.5 5.5 0 0 0 8 2.5Z', 'home': 'M6.906.664a1.749 1.749 0 0 1 2.187 0l5.25 4.2c.415.332.657.835.657 1.367v7.019A1.75 1.75 0 0 1 13.25 15h-3.5a.75.75 0 0 1-.75-.75V9H7v5.25a.75.75 0 0 1-.75.75h-3.5A1.75 1.75 0 0 1 1 13.25V6.23c0-.531.242-1.034.657-1.366l5.25-4.2Zm1.25 1.171a.25.25 0 0 0-.312 0l-5.25 4.2a.25.25 0 0 0-.094.196v7.019c0 .138.112.25.25.25H5.5V8.25a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v5.25h2.75a.25.25 0 0 0 .25-.25V6.23a.25.25 0 0 0-.094-.195Z', 'github': 'M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z'};
+var utterancesLoad=0;
+
+let themeSettings={
+    "dark": ["dark","moon","#00f0ff","dark-blue"],
+    "light": ["light","sun","#ff5000","github-light"],
+    "auto": ["auto","sync","","preferred-color-scheme"]
+};
+function changeTheme(mode, icon, color, utheme){
+    document.documentElement.setAttribute("data-color-mode",mode);
+    document.getElementById("themeSwitch").setAttribute("d",value=IconList[icon]);
+    document.getElementById("themeSwitch").parentNode.style.color=color;
+    if(utterancesLoad==1){utterancesTheme(utheme);}
+}
+function modeSwitch(){
+    let currentMode=document.documentElement.getAttribute('data-color-mode');
+    let newMode = currentMode === "light" ? "dark" : currentMode === "dark" ? "auto" : "light";
+    localStorage.setItem("meek_theme", newMode);
+    if(themeSettings[newMode]){
+        changeTheme(...themeSettings[newMode]);
+    }
+}
+function utterancesTheme(theme){
+    const message={type:'set-theme',theme: theme};
+    const iframe=document.getElementsByClassName('utterances-frame')[0];
+    iframe.contentWindow.postMessage(message,'https://utteranc.es');
+}
+if(themeSettings[theme]){changeTheme(...themeSettings[theme]);}
+console.log("\n %c Gmeek last https://github.com/Meekdai/Gmeek \n","padding:5px 0;background:#02d81d;color:#fff");
+</script>
+
+<script>
+document.getElementById("pathHome").setAttribute("d",IconList["home"]);
+document.getElementById("pathIssue").setAttribute("d",IconList["github"]);
+
+
+
+function openComments(){
+    cm=document.getElementById("comments");
+    cmButton=document.getElementById("cmButton");
+    cmButton.disabled=true;
+    cmButton.innerHTML="loading";
+    span=document.createElement("span");
+    span.setAttribute("class","AnimatedEllipsis");
+    cmButton.appendChild(span);
+
+    script=document.createElement("script");
+    script.setAttribute("src","https://utteranc.es/client.js");
+    script.setAttribute("repo","hx-nous/hx-nous.github.io");
+    script.setAttribute("issue-term","title");
+    
+    if(localStorage.getItem("meek_theme")=="dark"){script.setAttribute("theme","dark-blue");}
+    else if(localStorage.getItem("meek_theme")=="light") {script.setAttribute("theme","github-light");}
+    else{script.setAttribute("theme","preferred-color-scheme");}
+    
+    script.setAttribute("crossorigin","anonymous");
+    script.setAttribute("async","");
+    cm.appendChild(script);
+
+    int=self.setInterval("iFrameLoading()",200);
+}
+
+function iFrameLoading(){
+    var utterances=document.getElementsByClassName('utterances');
+    if(utterances.length==1){
+        if(utterances[0].style.height!=""){
+            utterancesLoad=1;
+            int=window.clearInterval(int);
+            document.getElementById("cmButton").style.display="none";
+            console.log("utterances Load OK");
+        }
+    }
+}
+
+
+
+</script>
+<script>MathJax = {tex: {inlineMath: [["$", "$"]]}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+</html>

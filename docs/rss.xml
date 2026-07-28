@@ -1,5 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>hx-nous</title><link>https://hx-nous.github.io</link><description>记录研究生学习历程</description><copyright>hx-nous</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/119385115?v=4</url><title>avatar</title><link>https://hx-nous.github.io</link></image><lastBuildDate>Tue, 23 Jun 2026 03:45:17 +0000</lastBuildDate><managingEditor>hx-nous</managingEditor><ttl>60</ttl><webMaster>hx-nous</webMaster><item><title>Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure</title><link>https://hx-nous.github.io/post/Graph%20Domain%20Adaptation%20via%20Homophily-Agnostic%20Reconstructing%20Structure.html</link><description># Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0"><channel><title>hx-nous</title><link>https://hx-nous.github.io</link><description>记录研究生学习历程</description><copyright>hx-nous</copyright><docs>http://www.rssboard.org/rss-specification</docs><generator>python-feedgen</generator><image><url>https://avatars.githubusercontent.com/u/119385115?v=4</url><title>avatar</title><link>https://hx-nous.github.io</link></image><lastBuildDate>Tue, 28 Jul 2026 14:26:55 +0000</lastBuildDate><managingEditor>hx-nous</managingEditor><ttl>60</ttl><webMaster>hx-nous</webMaster><item><title>Out-of-Distribution Graph Models Merging</title><link>https://hx-nous.github.io/post/Out-of-Distribution%20Graph%20Models%20Merging.html</link><description># Out-of-Distribution Graph Models Merging
+
+* 会议/期刊：ICLR 2026
+* 年份：2026
+* 论文链接：[OpenReview](https://openreview.net/forum?id=93Y7jSUSpk) ｜ [arXiv](https://arxiv.org/abs/2506.03674)
+* 代码链接：[OGMM](https://github.com/siriuslay/OGMM)
+
+## 一句话总结
+
+本文研究如何在无法访问源域数据和目标域数据的情况下，融合多个在不同域上预训练、甚至架构不同的 GNN；作者先从每个模型中反演生成合成图，再利用参数掩码和稀疏 MoE 动态融合专家，并在论文设置的 OOD 测试域上优于所选 baseline。</description><guid isPermaLink="true">https://hx-nous.github.io/post/Out-of-Distribution%20Graph%20Models%20Merging.html</guid><pubDate>Tue, 28 Jul 2026 14:26:19 +0000</pubDate></item><item><title>Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure</title><link>https://hx-nous.github.io/post/Graph%20Domain%20Adaptation%20via%20Homophily-Agnostic%20Reconstructing%20Structure.html</link><description># Graph Domain Adaptation via Homophily-Agnostic Reconstructing Structure
 
 - 会议/期刊：AAAI 2026，Proceedings of the AAAI Conference on Artificial Intelligence
 - 年份：2026
